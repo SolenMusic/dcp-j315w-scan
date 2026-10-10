@@ -3,6 +3,7 @@
 from pathlib import Path
 import os
 import signal
+import stat
 import socket
 import subprocess
 import tempfile
@@ -111,3 +112,10 @@ with tempfile.TemporaryDirectory(prefix="dcp-j315w-transport-") as tmp:
     result = subprocess.run([binary, "--scan", "127.0.0.1", output], capture_output=True, timeout=2)
     assert result.returncode == 1 and output.read_bytes() == b"existing scan", result
     print("PASS: an existing output file is preserved without connecting or scanning")
+    if os.uname().sysname == "Darwin":
+        output = Path(tmp) / "scan.png"
+        result = exercise("complete", output, dpi=300)
+        assert result[0] == 0 and output.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), result
+        assert stat.S_IMODE(output.stat().st_mode) == 0o600
+        assert not list(Path(tmp).glob("*.partial.*"))
+        print("PASS: native PNG export is private and leaves no staging directory")

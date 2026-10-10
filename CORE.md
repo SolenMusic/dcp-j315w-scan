@@ -30,11 +30,14 @@ of draining/discarding pending data to avoid an immediate TCP reset. Failed acqu
 no partial image. A synchronous progress callback must return promptly.
 
 The CLI owns command parsing, signal handling and output encoding. It writes a
-private temporary file in the destination directory, then uses an exclusive hard
+temporary image inside a private staging directory beside the destination, then uses an exclusive hard
 link to publish a complete file. An existing destination is never replaced, even
 if another process creates it while the scanner is running. The temporary file
-is removed on normal error paths. Abrupt process termination may leave a private
-`.partial` file, which should not be interpreted as a completed scan.
+and staging directory are removed on normal error paths. ImageIO can recreate
+the temporary image with a broader file mode, so directory permissions protect
+it during encoding and the final image is explicitly set to mode 0600 before
+publication. Abrupt process termination may leave a private `.partial` directory,
+which should not be interpreted as a completed scan.
 
 ## Planned native adapter
 

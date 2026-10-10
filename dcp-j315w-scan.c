@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
 #define _POSIX_C_SOURCE 200809L
+#ifdef __APPLE__
+#define _DARWIN_C_SOURCE 1
+#endif
 #include "src/scanner.h"
 #include <errno.h>
 #include <fcntl.h>
@@ -62,12 +65,18 @@ static int save_image(const char *path, const dcp_scan_image *image, int png) {
   char *temp = malloc(size);
   if (!temp) return 0;
   snprintf(temp, size, "%s.partial.XXXXXX", path);
-  int fd = mkstemp(temp), ok = 0;
-  if (fd < 0) { free(temp); return 0; }
+  // ImageIO can replace its target file and reset its mode. A private staging
+  // directory protects the data throughout encoding, including that replacement.
+  if (!mkdtemp(temp)) { free(temp); return 0; }
+  char *staged = malloc(size + 8);
+  if (!staged) { rmdir(temp); free(temp); return 0; }
+  snprintf(staged, size + 8, "%s/image", temp);
+  int fd = open(staged, O_WRONLY | O_CREAT | O_EXCL, 0600), ok = 0;
+  if (fd < 0) { rmdir(temp); free(staged); free(temp); return 0; }
   if (png) {
     close(fd);
 #ifdef __APPLE__
-    ok = write_png(temp, image);
+    ok = write_png(staged, image);
 #else
     errno = ENOTSUP;
 #endif
@@ -80,8 +89,10 @@ static int save_image(const char *path, const dcp_scan_image *image, int png) {
       if (fclose(out)) ok = 0;
     } else close(fd);
   }
-  if (ok) ok = link(temp, path) == 0;
-  int saved = errno; unlink(temp); free(temp); errno = saved;
+  if (ok) ok = chmod(staged, 0600) == 0;
+  if (ok) ok = link(staged, path) == 0;
+  int saved = errno;
+  unlink(staged); rmdir(temp); free(staged); free(temp); errno = saved;
   return ok;
 }
 static void usage(const char *program) {
