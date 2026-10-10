@@ -65,3 +65,50 @@ from the byte stream rather than assumed after a short idle timeout.
 On interrupted or failed acquisition, `ESC R` is the researched cancellation
 command. Native cancellation and malformed-transfer behaviour are checked using
 a simulated scanner. Physical mid-scan cancellation has not yet been verified.
+
+## Higher resolution and scan regions
+
+Read-only queries also returned:
+
+```text
+150,150,2,209,1240,294,1736
+300,300,2,209,2480,294,3472
+```
+
+A native 300 dpi grayscale full-bed request returned 3435 rows of 2480 bytes and
+then a confirmed page-end marker. The height difference (37 rows, about 3.1 mm)
+is similar in physical scale to the 12-row difference at 100 dpi. The reason is
+not established. A full-bed image must use the actual row count.
+
+**`A` carries left, top, right, bottom pixel coordinates**, not x/y/width/height.
+The CLI accepts the latter and converts them. A 300 dpi request
+`A=160,300,960,900` returned exactly 600 grayscale rows of 800 bytes; the image
+content matched that offset region of the full-bed scan. The first region test
+using width/height as absolute bounds failed strict row validation and produced
+no output; correcting the bounds resolved it.
+
+A physical 300 dpi acquisition cancelled after the first returned row exited
+without a saved image. The first subsequent query timed out; a later 300 dpi
+capability query succeeded. With bounded draining after cancellation, the client
+exited in about 0.03 seconds in a second experiment, but an immediate capability
+query still returned an unexpected response. Draining does not establish that
+the hardware is instantly ready. Cancellation acknowledgement and recovery timing
+remain open work, along with offline-device recovery.
+
+## Colour framing under investigation
+
+Queries with `M=CGRAY` succeeded at 100 and 300 dpi, with the same dimensions as
+gray at those resolutions. A controlled 100 dpi scan of the monochrome release
+notes with `C=NONE` returned 1145 sets of three records:
+
+- `0x44`, two-byte little-endian length 816, 816 bytes;
+- `0x48`, two-byte little-endian length 816, 816 bytes;
+- `0x4c`, two-byte little-endian length 816, 816 bytes.
+
+A page-end `0x80` followed the final complete set. The stream length was 2,813,266
+bytes. On white paper the middle channel was around 252/253, while the other two
+were around 129/130. This suggests a luminance plus colour-difference encoding;
+it is not direct RGB. Channel meaning, conversion, sample alignment and colour
+fidelity need confirmation against recognisable coloured material. The released
+local client still offers grayscale only, and does not label these raw channels
+as a verified RGB image.
