@@ -1,7 +1,7 @@
 # DCP-J315W Network Scanner
 
 An independent native wireless-scanning core for the **Brother DCP-J315W**, with
-an initial command-line test client. This project is separate from the
+native macOS Image Capture integration and a command-line test client. This project is separate from the
 `dcp-j315w-cups` printing repository and has no CUPS dependency.
 
 Created with LLM-assisted coding and controlled experiments on a real printer.
@@ -24,20 +24,65 @@ while longer.
 - A reusable, synchronous C11 core without global state or UI dependencies, and
   a universal macOS static library build for Intel and Apple Silicon.
 
-**Native Image Capture/Preview integration is the macOS target, but is not yet
-implemented.** The command-line client exercises the core during development.
-A Linux SANE backend is the later target for GNOME Document Scanner and KDE
-Skanpage; no dedicated scanning GUI is planned.
+**Native Image Capture now works on the tested Apple Silicon Mac running macOS
+27.** A small, local AirScan bridge exposes the existing scanner core to Apple's
+built-in scanner driver. The bridge has no custom scanning GUI. Image Capture
+provides overview, region selection, colour/grayscale controls and PDF export.
+A mixed-resolution, mixed-colour two-page PDF has been physically checked.
 
-Automatic discovery, calibrated tone reproduction, 600 dpi,
-PDF export, device-module installation and Linux SANE integration remain to be
-implemented. Native 300 dpi colour acquisition has been physically checked, and
+A Linux SANE backend remains the target for GNOME Document Scanner and KDE
+Skanpage. The command-line client is also available for development.
+
+Automatic printer-address discovery, measured colour calibration, 600 dpi,
+USB support, a signed public scanner installer and Linux SANE integration remain
+to be implemented. Native 300 dpi colour acquisition has been physically checked, and
 channel order matches the supplied digital original. The user confirmed the scan
 colours appear accurate against the printed canvas. No scanner ICC
 profile or vendor tone table is included; PNG RGB is tagged as sRGB as a practical
 output convention, not as a calibrated measurement of the scanner.
 
-## Build and use
+## Native macOS installation
+
+With Xcode or its command-line tools installed:
+
+```sh
+./build-macos-airscan.sh
+./install-macos-airscan.sh --address PRINTER_IPV4
+```
+
+Run as your normal user, without sudo. This builds a universal Intel/Apple Silicon
+app, installs it under your user's Library/Application Support, and starts a
+LaunchAgent at login. Source builds use an ad hoc signature; this scanner project
+has not yet had a signed/notarized public release. The installer uses Bash and
+macOS system tools, not Python.
+
+Open **Image Capture**, choose **DCP-J315W Open Scanner** under Shared, and select
+**Show Details**. Click **Overview**, select the desired area, then scan. For
+ordinary documents or artwork choose **300 dpi**. Choose **PDF** and enable
+**Combine into single document** to append subsequent flatbed scans using the same
+name. Changing Kind can reset Format to JPEG in Image Capture; select PDF again
+if necessary. Native PDF export, including a 300 dpi colour page followed by a
+100 dpi grayscale page, has been checked. The two test pages used the same canvas
+without moving it, so this verifies PDF assembly rather than paper feeding.
+
+The helper listens **only on 127.0.0.1** and its Bonjour announcement uses the
+local-only interface. It does not share this scanner with other computers or iOS.
+Printer traffic goes directly to the configured IPv4 address. If that address
+changes, rerun the installer with the new address. No CUPS queue or printer driver
+is modified. Scanned images remain in memory until delivered to the native app;
+the native app controls its output files and their permissions. Configuration and
+bridge logs are private to this user.
+
+To remove the helper and login startup entry:
+
+```sh
+./uninstall-macos-airscan.sh
+```
+
+This preserves native applications' scanned documents and the helper's diagnostic
+log. See [macOS integration notes](macos/README.md) for lifecycle and limitations.
+
+## Command-line build and use
 
 From this project folder, with Xcode or its command-line tools installed:
 
@@ -87,6 +132,19 @@ contains no ImageIO or GUI code. See [the core interface](src/scanner.h) and
 python3 test_transport.py
 ```
 
+For the AirScan bridge integration tests (Python plus Pillow, development only):
+
+```sh
+./build-macos-airscan.sh
+python3 test_airscan.py
+DCP_AIRSCAN_ARCH=x86_64 python3 test_airscan.py # Rosetta required on Apple Silicon
+```
+
+These tests disable discovery and contact only a simulated scanner at localhost.
+They check exact image crops, grayscale, one-bit text, JPEG and PNG output, busy
+jobs, cancellation, disconnected requests, validation and shutdown. Both CPU
+slices pass on the development Mac.
+
 Python is only a development dependency. The local simulated scanner checks exact
 image bytes under fragmented transfers, embedded end-marker-valued pixels,
 malformed capabilities, incomplete transfer rejection, wrong row-size rejection,
@@ -107,11 +165,13 @@ Verified on this device:
 | Physical cancellation after first row | Client exits without output; immediate reuse can fail while the device recovers |
 | Intel macOS client | Builds and passes grayscale/colour transport tests under Rosetta |
 | Universal macOS static core | Both architectures build and are present in the archive |
+| Native Image Capture | Colour overview, 300 dpi colour export and 100 dpi grayscale export verified |
+| Native multipage PDF | Two pages, correct physical dimensions, RGB then grayscale image data |
+| AirScan bridge | Full loopback integration suite passes on ARM64 and x86_64 under Rosetta |
 
 150 dpi grayscale is accepted by the capability query but has not had a physical
 acquisition check. Colour at 100 dpi was acquired in a protocol experiment and at
-300 dpi through the native core. A 150 dpi colour acquisition is not yet checked. No physical Intel Mac, Linux build, Linux GUI or native Image Capture check
-has been performed. The full-bed height discrepancy is documented rather than
+300 dpi through the native core. A 150 dpi colour acquisition is not yet checked. No physical Intel Mac, Linux build or Linux GUI check has been performed. The full-bed height discrepancy is documented rather than
 hidden by padding; exact edge coverage still needs investigation.
 The colour test object was a 30 x 30 cm printed canvas. It exceeds the scanner
 bed, so the scan intentionally contains only the portion on the glass; it is not

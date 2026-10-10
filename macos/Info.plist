@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>org.dcpj315w.scan.airscan</string>
+<key>CFBundleName</key><string>DCP-J315W Network Scanner</string>
+<key>CFBundleExecutable</key><string>DCPJ315WAirScanBridge</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+<key>CFBundleShortVersionString</key><string>0.0.1</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>LSMinimumSystemVersion</key><string>11.0</string>
+<key>LSBackgroundOnly</key><true/>
+<key>NSLocalNetworkUsageDescription</key><string>Connect to your DCP-J315W scanner over your local network.</string>
+</dict></plist>

@@ -42,23 +42,46 @@ it during encoding and the final image is explicitly set to mode 0600 before
 publication. Abrupt process termination may leave a private `.partial` directory,
 which should not be interpreted as a completed scan.
 
-## Planned native adapter
+## Native macOS integration
 
-Image Capture integration will wrap the core in an ICA scanner device module,
-with a separate adapter for discovery, sessions, capabilities, selected scan area,
-preview and image-data delivery. PDF assembly should be left to the scanning
-application. The reusable core can later also serve a SANE backend on Linux.
+The working adapter is `macos/airscan-bridge.m`, an independent eSCL/AirScan
+provider. Apple's built-in AirScan scanner module recognises its local-only
+Bonjour service and exposes it to Image Capture. There is no custom scanning UI.
+The bridge owns protocol translation, job state, rectangular crops and transport
+encoding; the native application owns output naming, PDF assembly and OCR.
 
-The locally installed macOS SDK contains `ICADevices.framework`, including
-`ICD_ScannerCalls.h`, scanner session/parameter/start callbacks,
-`ICD_ScannerMain` and TCP/IP device connection functions. The SDK's library
-exports those entry points. This establishes available build interfaces, **not**
-proof that our device module is recognised or works in current Image Capture.
-The callback dictionaries, device registration, image notifications, signing and
-actual UI integration still need implementation and verification.
+A legacy ICA device-module draft was investigated using the installed SDK and
+Apple's VirtualScanner sample. It built but its development launch did not
+register successfully on this machine. That unverified draft remains in ignored
+research files; it is not installed or part of the working adapter. No conclusion
+is drawn about every possible ICA installation path.
 
-No scanner module is installed by this prototype, and no printing queue or CUPS
-source is changed.
+The tested native client needs JPEG transport to construct usable scanning
+settings and display previews; PNG-only advertising produced incomplete requests
+and a blank preview. The bridge offers JPEG at quality 1.0 as well as lossless
+PNG. JPEG is not mathematically lossless. The core always acquires uncompressed
+scanner records. A one-bit text mode is implemented by thresholding eight-bit
+gray samples at 128 in the adapter.
+
+Scan job creation does not activate hardware. Acquisition begins on the first
+NextDocument request, which lets Apple's default-settings probe create and
+cancel a job harmlessly. While acquisition is pending, NextDocument returns a
+bounded 503/Retry-After response; the tested native client retries. This avoids
+queuing requests that time out during a long scan. An image is consumed only
+after a successful send, and the next request then reports the end of the single
+flatbed page. Failure or cancellation never delivers a partial image.
+
+The listener binds only to loopback, advertises only on Bonjour's local-only
+interface, limits headers/bodies/connections, rejects browser Origin requests,
+requires XML job bodies, and disables XML external entities. The bridge keeps one
+job and one encoded image at a time. Unstarted jobs expire after 30 seconds; old
+completed images can be replaced after five minutes. Shutdown gives an active
+worker up to five seconds to send cancellation before exiting.
+
+The per-user Bash installer copies the universal app to Library/Application
+Support/DCPJ315WScan, writes a private LaunchAgent and starts it at login. No root
+authentication, CUPS source or printing queue changes are involved. The application
+only exposes this computer's scanner interface; it is not a LAN scan server.
 
 ## Colour conversion
 

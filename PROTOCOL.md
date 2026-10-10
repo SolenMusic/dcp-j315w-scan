@@ -135,3 +135,37 @@ The test object was a 30 x 30 cm printed canvas, larger than the approximately
 not evidence of a colour-decoder crop error. The user confirmed that the colours
 from the scan appear accurate against the canvas. This is a visual confirmation,
 not a measured ICC calibration.
+
+## Native macOS AirScan transport
+
+The Mac adapter translates a local eSCL service into the legacy network core.
+Its HTTP listener binds only to 127.0.0.1, and both its hostname record and
+_uscan._tcp service are registered on Bonjour's local-only interface. Native
+Image Capture discovers it through Apple's built-in AirScan scanner module.
+The per-user installed LaunchAgent has been checked running with private
+configuration and log permissions. A full reboot/login remains a separate check.
+
+Important observations from actual native requests:
+
+- JPEG capability/transport is needed by the tested Apple client for usable
+  settings and visible previews. PNG-only capability advertising led to compact
+  default requests and no visible overview. JPEG and PNG are now offered.
+- Native clients can create a minimal job containing only input source, intent
+  and BlackAndWhite1. Missing region/resolution/format fields use bounded defaults.
+  Creating then deleting such a job must not move the scanner: acquisition is
+  deferred until NextDocument is requested.
+- ScannerCapabilities needs usable profiles, physical extents and resolution
+  data. Native region coordinates use 1/300-inch units, converted to scan pixels.
+  The core acquires a 16-pixel-aligned rectangle; the adapter crops the left edge
+  and width back to the client's requested area. No missing pixels are invented.
+- ScannerStatus job entries include JobUri, JobUuid, JobState and ImagesCompleted
+  in their appropriate namespaces.
+- Long acquisitions must not leave dead document requests able to consume the
+  image. Pending NextDocument calls use a bounded wait and return 503 with
+  Retry-After. The tested native client retries. Only a successful image send
+  consumes the single flatbed page; subsequent NextDocument returns 404.
+
+Actual native export produced a two-page PDF from the same stationary canvas:
+300 dpi RGB (2445 x 3432 pixels), then 100 dpi grayscale (815 x 1144). Both PDF
+pages have identical physical dimensions, 586.8 x 823.68 points. Page count, image
+dimensions, colour-component counts and rendered appearance were checked.
