@@ -35,9 +35,9 @@ static int number(const char *text, unsigned *value) {
 #ifdef __APPLE__
 static int write_png(const char *path, const dcp_scan_image *image) {
   CFURLRef url = CFURLCreateFromFileSystemRepresentation(NULL, (const UInt8 *)path, strlen(path), false);
-  CGColorSpaceRef space = CGColorSpaceCreateDeviceGray();
+  CGColorSpaceRef space = image->channels == 3 ? CGColorSpaceCreateWithName(kCGColorSpaceSRGB) : CGColorSpaceCreateDeviceGray();
   CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, image->pixels, image->stride * image->height, NULL);
-  CGImageRef bitmap = provider && space ? CGImageCreate(image->width, image->height, 8, 8,
+  CGImageRef bitmap = provider && space ? CGImageCreate(image->width, image->height, 8, 8 * image->channels,
     image->stride, space, kCGImageAlphaNone, provider, NULL, false, kCGRenderingIntentDefault) : NULL;
   CGImageDestinationRef output = url ? CGImageDestinationCreateWithURL(url, CFSTR("public.png"), 1, NULL) : NULL;
   double dpi = image->dpi;
@@ -83,8 +83,8 @@ static int save_image(const char *path, const dcp_scan_image *image, int png) {
   } else {
     FILE *out = fdopen(fd, "wb");
     if (out) {
-      ok = fprintf(out, "P5\n# DCP-J315W network scan, %u dpi\n%u %u\n255\n",
-                   image->dpi, image->width, image->height) > 0;
+      ok = fprintf(out, "P%u\n# DCP-J315W network scan, %u dpi\n%u %u\n255\n",
+                   image->channels == 3 ? 6 : 5, image->dpi, image->width, image->height) > 0;
       if (ok) ok = fwrite(image->pixels, image->stride, image->height, out) == image->height;
       if (fclose(out)) ok = 0;
     } else close(fd);
@@ -96,8 +96,9 @@ static int save_image(const char *path, const dcp_scan_image *image, int png) {
   return ok;
 }
 static void usage(const char *program) {
-  fprintf(stderr, "Usage: %s --info PRINTER_IPV4 [--dpi 100|150|300]\n"
-    "       %s --scan PRINTER_IPV4 OUTPUT.pgm|OUTPUT.png [--dpi 100|150|300]\n"
+  fprintf(stderr, "Usage: %s --info PRINTER_IPV4 [--dpi 100|150|300] [--mode gray|colour]\n"
+    "       %s --scan PRINTER_IPV4 OUTPUT.pgm|OUTPUT.ppm|OUTPUT.png [--dpi 100|150|300]\n"
+    "          [--mode gray|colour]\n"
     "          [--area X,Y,WIDTH,HEIGHT]\n"
     "Area values are pixels; X and WIDTH must be multiples of 16. PNG requires macOS.\n",
     program, program);
@@ -113,6 +114,10 @@ int main(int argc, char **argv) {
     if (i + 1 >= argc) { usage(argv[0]); return 2; }
     if (!strcmp(argv[i], "--dpi")) {
       if (!number(argv[i+1], &options.dpi)) { usage(argv[0]); return 2; }
+    } else if (!strcmp(argv[i], "--mode")) {
+      if (!strcmp(argv[i+1], "colour") || !strcmp(argv[i+1], "color")) options.mode = DCP_SCAN_COLOUR;
+      else if (!strcmp(argv[i+1], "gray")) options.mode = DCP_SCAN_GRAY;
+      else { usage(argv[0]); return 2; }
     } else if (!strcmp(argv[i], "--area") && scanning) {
       char *area = strdup(argv[i+1]), *p = area;
       unsigned *fields[] = {&options.x, &options.y, &options.width, &options.height};
@@ -132,7 +137,8 @@ int main(int argc, char **argv) {
       options.x % 16 || options.width % 16) { usage(argv[0]); return 2; }
   if (scanning) {
     const char *extension = strrchr(argv[3], '.');
-    if (!extension || (strcmp(extension, ".pgm") && strcmp(extension, ".png"))) {
+    const char *raw_extension = options.mode == DCP_SCAN_COLOUR ? ".ppm" : ".pgm";
+    if (!extension || (strcmp(extension, raw_extension) && strcmp(extension, ".png"))) {
       usage(argv[0]); return 2;
     }
     png = !strcmp(extension, ".png");
@@ -150,7 +156,7 @@ int main(int argc, char **argv) {
   char error[256]; int ok;
   if (scanning) {
     dcp_scan_image image = {0};
-    fprintf(stderr, "Scanning grayscale at %u dpi.\n", options.dpi);
+    fprintf(stderr, "Scanning %s at %u dpi.\n", options.mode == DCP_SCAN_COLOUR ? "colour" : "grayscale", options.dpi);
     ok = dcp_scan_acquire(argv[2], &options, &image, &callbacks, error, sizeof(error));
     if (!ok) fprintf(stderr, "%s; no image saved.\n", error);
     if (ok) {
@@ -164,8 +170,9 @@ int main(int argc, char **argv) {
     dcp_scan_capabilities caps;
     ok = dcp_scan_query(argv[2], &options, &caps, &callbacks, error, sizeof(error));
     if (!ok) fprintf(stderr, "%s\n", error);
-    else printf("Flatbed grayscale: %u dpi, reported maximum %u x %u pixels (%u x %u mm)\n",
-                caps.x_dpi, caps.width_pixels, caps.height_pixels, caps.width_mm, caps.height_mm);
+    else printf("Flatbed %s: %u dpi, reported maximum %u x %u pixels (%u x %u mm)\n",
+                options.mode == DCP_SCAN_COLOUR ? "colour" : "grayscale", caps.x_dpi,
+                caps.width_pixels, caps.height_pixels, caps.width_mm, caps.height_mm);
   }
   return ok ? 0 : 1;
 }

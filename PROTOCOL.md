@@ -95,7 +95,7 @@ query still returned an unexpected response. Draining does not establish that
 the hardware is instantly ready. Cancellation acknowledgement and recovery timing
 remain open work, along with offline-device recovery.
 
-## Colour framing under investigation
+## Observed colour framing and RGB conversion
 
 Queries with `M=CGRAY` succeeded at 100 and 300 dpi, with the same dimensions as
 gray at those resolutions. A controlled 100 dpi scan of the monochrome release
@@ -108,7 +108,30 @@ notes with `C=NONE` returned 1145 sets of three records:
 A page-end `0x80` followed the final complete set. The stream length was 2,813,266
 bytes. On white paper the middle channel was around 252/253, while the other two
 were around 129/130. This suggests a luminance plus colour-difference encoding;
-it is not direct RGB. Channel meaning, conversion, sample alignment and colour
-fidelity need confirmation against recognisable coloured material. The released
-local client still offers grayscale only, and does not label these raw channels
-as a verified RGB image.
+it is not direct RGB. This monochrome-page experiment alone could not determine which colour-difference
+channel was which; the coloured-page experiment below resolved the assignment.
+Fine sample alignment and calibrated colour fidelity still need investigation.
+
+A second 100 dpi acquisition used a coloured artwork canvas and returned the same
+record counts and dimensions. Decoding both possible chroma assignments showed a
+clear difference: treating 0x44 as Cr and 0x4c as Cb reproduced the original's warm
+yellow/orange sky, orange foliage and green foliage. The opposite interpretation
+changed the sky and orange foliage to blue/cyan. The user supplied the digital
+original, confirming the warm interpretation and channel order.
+
+The native core subsequently acquired a 300 dpi colour scan: 2480 x 3435 pixels,
+three records per row, and a confirmed page-end marker. It exported a native PNG
+with 300 dpi metadata, an sRGB output profile, and file mode 0600. The independent
+converter uses the full-range YCbCr inverse in
+[ITU-T T.871 section 7](https://www.itu.int/rec/T-REC-T.871); it does not use a
+vendor decoder, calibration blob or tone table. The result preserves the major
+colour relationships in the original. This establishes channel assignment and
+a practical conversion, not a calibrated colour match between digital source,
+ink on paper and scanner. Colour-region geometry, fine colour registration and
+150 dpi colour acquisition remain physically unverified.
+
+The test object was a 30 x 30 cm printed canvas, larger than the approximately
+30 x 20 cm scanner bed. The visible crop is therefore expected physical coverage,
+not evidence of a colour-decoder crop error. The user confirmed that the colours
+from the scan appear accurate against the canvas. This is a visual confirmation,
+not a measured ICC calibration.

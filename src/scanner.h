@@ -6,9 +6,11 @@
 // Each call owns its connection. No global state, files, UI or CUPS dependency.
 // Callbacks execute synchronously on the calling thread; UI callers should use
 // a worker thread. A cancellation callback must be safe for that thread to read.
+typedef enum { DCP_SCAN_GRAY = 0, DCP_SCAN_COLOUR = 1 } dcp_scan_mode;
 typedef struct {
-  unsigned dpi;                    // 100, 150 or 300; grayscale for now
+  unsigned dpi;                    // 100, 150 or 300
   unsigned x, y, width, height;     // pixels; zero width/height means remaining bed
+  dcp_scan_mode mode;               // zero-initialisation preserves grayscale
 } dcp_scan_options;
 typedef struct {
   unsigned x_dpi, y_dpi, source, width_mm, width_pixels, height_mm, height_pixels;
@@ -20,6 +22,7 @@ typedef struct {
 } dcp_scan_callbacks;
 typedef struct {
   unsigned char *pixels;
+  // One grayscale channel, or three interleaved RGB channels, eight bits each.
   unsigned width, height, dpi, channels;
   size_t stride;
 } dcp_scan_image;

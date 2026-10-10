@@ -15,6 +15,13 @@ binary = Path(os.environ.get("DCP_SCAN_BINARY", root / "dcp-j315w-scan"))
 pixels = bytes((i * 13) % 256 for i in range(128))
 # Include page-end-valued bytes *inside* row data, which must not terminate a scan.
 pixels = pixels[:7] + b"\x80" + pixels[8:]
+# Independent colour vectors: black, white, red, green, blue, neutral, and two
+# out-of-gamut values that exercise clipping. Wire tuples are (Cr, Y, Cb).
+colour_vectors = [(128, 0, 128), (128, 255, 128), (255, 76, 85),
+                  (21, 150, 44), (107, 29, 255), (128, 128, 128),
+                  (0, 0, 0), (255, 255, 255)] * 16
+rgb = bytes([0, 0, 0, 255, 255, 255, 254, 0, 0, 0, 255, 1,
+             0, 0, 254, 128, 128, 128, 0, 135, 0, 255, 121, 255] * 16)
 
 
 def request(conn):
@@ -33,7 +40,7 @@ def fragmented(conn, data):
         time.sleep(0.001)
 
 
-def exercise(kind, output, dpi=100, area=None):
+def exercise(kind, output, dpi=100, area=None, colour=False):
     listener = socket.socket()
     listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     listener.bind(("127.0.0.1", 54921))
@@ -47,7 +54,8 @@ def exercise(kind, output, dpi=100, area=None):
             with listener.accept()[0] as conn:
                 conn.settimeout(10)
                 fragmented(conn, b"+OK 200\r\n")
-                assert request(conn) == f"\x1bI\nR={dpi},{dpi}\nM=GRAY256\n".encode() + b"\x80"
+                mode = "CGRAY" if colour else "GRAY256"
+                assert request(conn) == f"\x1bI\nR={dpi},{dpi}\nM={mode}\n".encode() + b"\x80"
                 info = f"{dpi},{dpi},2,209,32,294,4".encode()
                 if kind == "bad-info":
                     info = b"100,100,2,209,99999999999999999999999999,294,4"
@@ -57,18 +65,30 @@ def exercise(kind, output, dpi=100, area=None):
                 scan = request(conn)
                 expected_area = b"16,1,32,3" if area else b"0,0,32,4"
                 assert scan.startswith(b"\x1bX\n") and b"A=" + expected_area + b"\n\x80" in scan
+                assert f"M={mode}\n".encode() in scan
                 scanning.set()
                 if kind == "cancel":
-                    conn.sendall(b"\x40\x20\0" + pixels[:4])
+                    conn.sendall(bytes([0x44 if colour else 0x40, 32, 0]) + pixels[:4])
                     assert conn.recv(2) == b"\x1bR"
                     return
                 if kind == "bad-width":
-                    conn.sendall(b"\x40\x1f\0")
+                    conn.sendall(bytes([0x44 if colour else 0x40, 31, 0]))
                     assert conn.recv(2) == b"\x1bR"
                     return
                 width, height = (16, 2) if area else (32, 4)
                 for row in range(height):
-                    fragmented(conn, b"\x40" + width.to_bytes(2, "little") + pixels[row*width:(row+1)*width])
+                    for plane in range(3 if colour else 1):
+                        tag = 0x44 + plane * 4 if colour else 0x40
+                        if kind == "wrong-plane" and plane == 1:
+                            conn.sendall(b"\x44")
+                            assert conn.recv(2) == b"\x1bR"
+                            return
+                        if kind == "incomplete-colour-row" and plane == 1:
+                            conn.sendall(b"\x80")
+                            assert conn.recv(2) == b"\x1bR"
+                            return
+                        data = bytes(v[plane] for v in colour_vectors[row*width:(row+1)*width]) if colour else pixels[row*width:(row+1)*width]
+                        fragmented(conn, bytes([tag]) + width.to_bytes(2, "little") + data)
                 if kind != "missing-end":
                     conn.sendall(b"\x80")
         except Exception as exc:
@@ -79,6 +99,8 @@ def exercise(kind, output, dpi=100, area=None):
     thread = threading.Thread(target=scanner)
     thread.start()
     args = [binary, "--scan", "127.0.0.1", output, "--dpi", str(dpi)]
+    if colour:
+        args += ["--mode", "colour"]
     if area:
         args += ["--area", area]
     process = subprocess.Popen(args,
@@ -112,6 +134,17 @@ with tempfile.TemporaryDirectory(prefix="dcp-j315w-transport-") as tmp:
     result = subprocess.run([binary, "--scan", "127.0.0.1", output], capture_output=True, timeout=2)
     assert result.returncode == 1 and output.read_bytes() == b"existing scan", result
     print("PASS: an existing output file is preserved without connecting or scanning")
+    output = Path(tmp) / "colour.ppm"
+    result = exercise("complete", output, colour=True)
+    assert result[0] == 0, result
+    assert output.read_bytes() == b"P6\n# DCP-J315W network scan, 100 dpi\n32 4\n255\n" + rgb
+    assert stat.S_IMODE(output.stat().st_mode) == 0o600
+    print("PASS: fragmented colour planes produce correct RGB vectors, clipping and neutral tones")
+    output.unlink()
+    for kind in ("wrong-plane", "incomplete-colour-row", "missing-end", "bad-width", "cancel"):
+        result = exercise(kind, output, colour=True)
+        assert result[0] == 1 and not output.exists(), (kind, result)
+        print(f"PASS: colour {kind} fails without exposing an incomplete image")
     if os.uname().sysname == "Darwin":
         output = Path(tmp) / "scan.png"
         result = exercise("complete", output, dpi=300)
@@ -119,3 +152,12 @@ with tempfile.TemporaryDirectory(prefix="dcp-j315w-transport-") as tmp:
         assert stat.S_IMODE(output.stat().st_mode) == 0o600
         assert not list(Path(tmp).glob("*.partial.*"))
         print("PASS: native PNG export is private and leaves no staging directory")
+        output = Path(tmp) / "colour.png"
+        result = exercise("complete", output, dpi=300, colour=True)
+        assert result[0] == 0 and output.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), result
+        assert stat.S_IMODE(output.stat().st_mode) == 0o600
+        assert not list(Path(tmp).glob("*.partial.*"))
+        info = subprocess.run(["sips", "-g", "space", "-g", "dpiWidth", "-g", "dpiHeight", output],
+                              capture_output=True, text=True, check=True).stdout
+        assert "space: RGB" in info and "dpiWidth: 300" in info and "dpiHeight: 300" in info, info
+        print("PASS: colour PNG uses RGB, correct DPI metadata and private output")

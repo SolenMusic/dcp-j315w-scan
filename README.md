@@ -12,9 +12,11 @@ while longer.
 ## Current scope
 
 - Direct IPv4 connection to the scanner service on TCP port 54921.
-- Grayscale capabilities and acquisition at 100, 150 or 300 dpi.
+- Grayscale and initial colour acquisition at 100, 150 or 300 dpi.
 - Full-bed scans and selectable rectangular regions, with bounded memory use.
-- Native macOS PNG export with correct DPI metadata; portable 8-bit PGM export.
+- Native macOS PNG export with correct DPI metadata; portable 8-bit PGM/PPM export.
+- Strict three-plane colour framing and a standard YCbCr-to-RGB conversion.
+  Channel order was checked against the digital original of the scanned artwork.
 - Fragmented TCP transfer handling, strict record validation, a 180-second scan
   deadline, cancellation and progress callbacks.
 - No partial image on transfer failure; output files are private and existing
@@ -27,10 +29,13 @@ implemented.** The command-line client exercises the core during development.
 A Linux SANE backend is the later target for GNOME Document Scanner and KDE
 Skanpage; no dedicated scanning GUI is planned.
 
-Colour conversion, automatic discovery, calibrated tone reproduction, 600 dpi,
+Automatic discovery, calibrated tone reproduction, 600 dpi,
 PDF export, device-module installation and Linux SANE integration remain to be
-implemented. The scanner accepts a colour query and emits colour records, but
-correct colour interpretation has not yet been verified.
+implemented. Native 300 dpi colour acquisition has been physically checked, and
+channel order matches the supplied digital original. The user confirmed the scan
+colours appear accurate against the printed canvas. No scanner ICC
+profile or vendor tone table is included; PNG RGB is tagged as sRGB as a practical
+output convention, not as a calibrated measurement of the scanner.
 
 ## Build and use
 
@@ -41,6 +46,8 @@ From this project folder, with Xcode or its command-line tools installed:
 ./dcp-j315w-scan --info PRINTER_IPV4 --dpi 300
 ./dcp-j315w-scan --scan PRINTER_IPV4 result.png --dpi 300
 ./dcp-j315w-scan --scan PRINTER_IPV4 preview.pgm
+./dcp-j315w-scan --scan PRINTER_IPV4 artwork.png --dpi 300 --mode colour
+./dcp-j315w-scan --scan PRINTER_IPV4 artwork.ppm --mode colour
 ./dcp-j315w-scan --scan PRINTER_IPV4 crop.png --dpi 300 --area 160,300,800,600
 ```
 
@@ -48,7 +55,9 @@ Replace `PRINTER_IPV4` with the printer's numeric network address. Put a documen
 on the glass and close the lid before scanning. The output filename must be new.
 No administrator authentication or system installation is needed. Use Ctrl-C to
 cancel. PNG export uses Apple's ImageIO; no Python or external image converter is
-needed. The PNG records the chosen resolution in both axes.
+needed. The PNG records the chosen resolution in both axes. `--mode colour`
+(or `--mode color`) selects colour; the default is `--mode gray`. Use `.ppm` for
+portable RGB or `.pgm` for grayscale, and `.png` for either mode on macOS.
 
 The `--area` values are **x, y, width, height in pixels at the selected DPI**.
 X and width must be multiples of 16; zero width/height means the remaining bed.
@@ -59,7 +68,7 @@ returned with a confirmed device page-end marker are saved.
 `build.sh` accepts `CC`, `CFLAGS`, `LDFLAGS` and `OUTPUT`, and applies an ad hoc
 signature on macOS. This is not yet a packaged or notarized release. The networking
 core uses only the system C runtime; the CLI additionally links Apple frameworks
-for PNG export on macOS. Portable PGM remains available without those frameworks.
+for PNG export on macOS. Portable PGM/PPM remains available without those frameworks.
 
 ## Reusable macOS core
 
@@ -81,7 +90,9 @@ python3 test_transport.py
 Python is only a development dependency. The local simulated scanner checks exact
 image bytes under fragmented transfers, embedded end-marker-valued pixels,
 malformed capabilities, incomplete transfer rejection, wrong row-size rejection,
-cancellation, offset-region coordinates and output preservation.
+cancellation, offset-region coordinates and output preservation. Colour checks
+include primary and neutral RGB vectors, clipping, incorrect plane order, missing
+planes and private PNG output with RGB/DPI metadata.
 
 Verified on this device:
 
@@ -89,16 +100,23 @@ Verified on this device:
 |---|---|
 | Apple Silicon, grayscale 100 dpi | 816 x 1145 pixels, complete page-end |
 | Apple Silicon, grayscale 300 dpi | 2480 x 3435 pixels, complete page-end |
+| Apple Silicon, colour 300 dpi | 2480 x 3435 RGB pixels, complete page-end; channel order checked against original and colours visually confirmed by user |
+| Native colour PNG metadata | 300 dpi in both axes, sRGB profile, private file mode 0600 |
 | 300 dpi offset region | 800 x 600 pixels, correct content and position |
 | Native PNG metadata | 300 dpi in both axes, grayscale colour space |
 | Physical cancellation after first row | Client exits without output; immediate reuse can fail while the device recovers |
-| Intel macOS client | Builds and passes simulated transport tests under Rosetta |
+| Intel macOS client | Builds and passes grayscale/colour transport tests under Rosetta |
 | Universal macOS static core | Both architectures build and are present in the archive |
 
-150 dpi is accepted by the capability query but has not had a physical acquisition
-check. No physical Intel Mac, Linux build, Linux GUI or native Image Capture check
+150 dpi grayscale is accepted by the capability query but has not had a physical
+acquisition check. Colour at 100 dpi was acquired in a protocol experiment and at
+300 dpi through the native core. A 150 dpi colour acquisition is not yet checked. No physical Intel Mac, Linux build, Linux GUI or native Image Capture check
 has been performed. The full-bed height discrepancy is documented rather than
 hidden by padding; exact edge coverage still needs investigation.
+The colour test object was a 30 x 30 cm printed canvas. It exceeds the scanner
+bed, so the scan intentionally contains only the portion on the glass; it is not
+a complete reproduction of the square artwork.
+
 Immediate capability queries following physical cancellation have timed out or
 returned an unexpected response. A later query succeeded. Device recovery timing
 and cancellation acknowledgements still need investigation before native UI use.

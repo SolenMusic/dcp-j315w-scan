@@ -107,6 +107,7 @@ static int open_scanner(session *s, const char *host) {
 
 static int valid_options(const dcp_scan_options *o) {
   if (!o || (o->dpi != 100 && o->dpi != 150 && o->dpi != 300) ||
+      (o->mode != DCP_SCAN_GRAY && o->mode != DCP_SCAN_COLOUR) ||
       o->x % 16 || (o->width && o->width % 16)) {
     errno = EINVAL; return 0;
   }
@@ -116,9 +117,13 @@ static int fail(char *error, size_t size, const char *operation) {
   if (error && size) snprintf(error, size, "%s: %s", operation, strerror(errno));
   return 0;
 }
-static int query(session *s, int fd, unsigned dpi, dcp_scan_capabilities *caps) {
+static const char *wire_mode(const dcp_scan_options *o) {
+  return o->mode == DCP_SCAN_COLOUR ? "CGRAY" : "GRAY256";
+}
+static int query(session *s, int fd, const dcp_scan_options *o, dcp_scan_capabilities *caps) {
+  unsigned dpi = o->dpi;
   char request[80];
-  int length = snprintf(request, sizeof(request), "\x1bI\nR=%u,%u\nM=GRAY256\n\x80", dpi, dpi);
+  int length = snprintf(request, sizeof(request), "\x1bI\nR=%u,%u\nM=%s\n\x80", dpi, dpi, wire_mode(o));
   int64_t deadline = now_ms() + 5000;
   unsigned char header[3]; char text[256];
   if (!transmit(s, fd, request, (size_t)length, deadline) ||
@@ -155,12 +160,30 @@ int dcp_scan_query(const char *host, const dcp_scan_options *o,
   session s = {callbacks};
   int fd = open_scanner(&s, host);
   if (fd < 0) return fail(error, error_size, "Cannot open scanner");
-  int ok = query(&s, fd, o->dpi, caps);
+  int ok = query(&s, fd, o, caps);
   int saved = errno; close(fd); errno = saved;
   return ok ? 1 : fail(error, error_size, "Cannot query scanner");
 }
 void dcp_scan_free(dcp_scan_image *image) {
   if (image) { free(image->pixels); memset(image, 0, sizeof(*image)); }
+}
+static unsigned char sample(int scaled) {
+  if (scaled <= 0) return 0;
+  if (scaled >= 255000000) return 255;
+  return (unsigned char)((scaled + 500000) / 1000000);
+}
+static void colour_row(unsigned char *rgb, const unsigned char *planes, unsigned width) {
+  // Full-range YCbCr inverse (ITU-T T.871 section 7). Wire planes are Cr,Y,Cb.
+  // Fixed decimal coefficients make rounding identical across CPU targets.
+  // This is a standard matrix, not a vendor decoder or calibration table.
+  for (unsigned x = 0; x < width; ++x) {
+    int cr = (int)planes[x] - 128;
+    int y = (int)planes[width + x] * 1000000;
+    int cb = (int)planes[width * 2 + x] - 128;
+    rgb[x * 3] = sample(y + 1402000 * cr);
+    rgb[x * 3 + 1] = sample(y - 344136 * cb - 714136 * cr);
+    rgb[x * 3 + 2] = sample(y + 1772000 * cb);
+  }
 }
 int dcp_scan_acquire(const char *host, const dcp_scan_options *o,
                      dcp_scan_image *image, const dcp_scan_callbacks *callbacks,
@@ -173,10 +196,12 @@ int dcp_scan_acquire(const char *host, const dcp_scan_options *o,
   if (fd < 0) return fail(error, error_size, "Cannot open scanner");
   dcp_scan_capabilities caps;
   unsigned char *pixels = NULL;
+  unsigned char *planes = NULL;
+  unsigned channels = o->mode == DCP_SCAN_COLOUR ? 3 : 1;
   unsigned rows = 0, width = 0, height = 0;
   int completed = 0, sent = 0;
   const char *operation = "Cannot query scanner";
-  if (!query(&s, fd, o->dpi, &caps)) goto end;
+  if (!query(&s, fd, o, &caps)) goto end;
   operation = "Invalid scan area";
   if (o->x >= caps.width_pixels || o->y >= caps.height_pixels) { errno = EINVAL; goto end; }
   width = o->width ? o->width : (caps.width_pixels - o->x) / 16 * 16;
@@ -185,12 +210,16 @@ int dcp_scan_acquire(const char *host, const dcp_scan_options *o,
     errno = EINVAL; goto end;
   }
   operation = "Cannot allocate image";
-  pixels = malloc((size_t)width * height);
+  pixels = malloc((size_t)width * height * channels);
   if (!pixels) goto end;
+  if (channels == 3) {
+    planes = malloc((size_t)width * 3);
+    if (!planes) goto end;
+  }
   char request[256];
   int length = snprintf(request, sizeof(request),
-    "\x1bX\nR=%u,%u\nM=GRAY256\nC=NONE\nB=50\nN=50\nU=OFF\nP=OFF\nA=%u,%u,%u,%u\n\x80",
-    o->dpi, o->dpi, o->x, o->y, o->x + width, o->y + height);
+    "\x1bX\nR=%u,%u\nM=%s\nC=NONE\nB=50\nN=50\nU=OFF\nP=OFF\nA=%u,%u,%u,%u\n\x80",
+    o->dpi, o->dpi, wire_mode(o), o->x, o->y, o->x + width, o->y + height);
   int64_t deadline = now_ms() + 180000;
   operation = "Cannot send scan request";
   if (length < 0 || length >= (int)sizeof(request)) { errno = EOVERFLOW; goto end; }
@@ -205,11 +234,20 @@ int dcp_scan_acquire(const char *host, const dcp_scan_options *o,
       if (rows) completed = 1; else errno = EPROTO;
       break;
     }
-    if (tag != 0x40 || rows >= height) { errno = EPROTO; break; }
-    if (!receive_exact(&s, fd, size, sizeof(size), deadline)) break;
-    unsigned count = size[0] | (unsigned)size[1] << 8;
-    if (count != width) { errno = EPROTO; break; }
-    if (!receive_exact(&s, fd, pixels + (size_t)rows * width, width, deadline)) break;
+    if (rows >= height) { errno = EPROTO; break; }
+    int row_ok = 1;
+    for (unsigned plane = 0; plane < channels; ++plane) {
+      unsigned expected = channels == 1 ? 0x40 : 0x44 + plane * 4;
+      if (plane && !receive_exact(&s, fd, &tag, 1, deadline)) { row_ok = 0; break; }
+      if (tag != expected) { errno = EPROTO; row_ok = 0; break; }
+      if (!receive_exact(&s, fd, size, sizeof(size), deadline)) { row_ok = 0; break; }
+      unsigned count = size[0] | (unsigned)size[1] << 8;
+      if (count != width) { errno = EPROTO; row_ok = 0; break; }
+      unsigned char *target = channels == 1 ? pixels + (size_t)rows * width : planes + plane * width;
+      if (!receive_exact(&s, fd, target, width, deadline)) { row_ok = 0; break; }
+    }
+    if (!row_ok) break;
+    if (channels == 3) colour_row(pixels + (size_t)rows * width * 3, planes, width);
     ++rows;
     if (callbacks && callbacks->progress) callbacks->progress(callbacks->context, rows, height);
   }
@@ -235,7 +273,8 @@ end:;
     }
   }
   close(fd); errno = saved;
+  free(planes);
   if (!completed) { free(pixels); return fail(error, error_size, operation); }
-  *image = (dcp_scan_image){pixels, width, rows, o->dpi, 1, width};
+  *image = (dcp_scan_image){pixels, width, rows, o->dpi, channels, (size_t)width * channels};
   return 1;
 }
