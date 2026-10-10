@@ -1,0 +1,6 @@
+/dcp-j315w-scan
+/build/
+/captures/
+/research/
+__pycache__/
+.DS_Store
