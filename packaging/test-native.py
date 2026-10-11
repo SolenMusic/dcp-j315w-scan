@@ -134,7 +134,10 @@ else:
         assert run('lpstat', '-p', other).returncode == 0
         remove()
         assert not binary.exists() and not configure.exists() and not model.exists()
-        assert run('lpstat', '-p', other).returncode == 0
+        # Some managers also remove CUPS when it was installed solely as this
+        # package's dependency. Its client tools need not remain, but the user's
+        # unrelated queue configuration must remain intact.
+        assert Path('/etc/cups/ppd/' + other + '.ppd').read_text() == foreign.read_text()
         print('PASS: safe queue removal; package manager removes owned files; unrelated queue preserved', flush=True)
     finally:
         daemon.terminate()

@@ -1,0 +1,155 @@
+[
+  {
+    "id": "debian-x86_64",
+    "flavour": "debian",
+    "arch": "x86_64",
+    "platform": "linux/amd64",
+    "runner": "ubuntu-24.04",
+    "base": "debian:bookworm-slim",
+    "cpu": "max"
+  },
+  {
+    "id": "debian-arm64",
+    "flavour": "debian",
+    "arch": "arm64",
+    "platform": "linux/arm64",
+    "runner": "ubuntu-24.04-arm",
+    "base": "debian:bookworm-slim",
+    "cpu": "max"
+  },
+  {
+    "id": "fedora-x86_64",
+    "flavour": "fedora",
+    "arch": "x86_64",
+    "platform": "linux/amd64",
+    "runner": "ubuntu-24.04",
+    "base": "fedora:43",
+    "cpu": "max"
+  },
+  {
+    "id": "fedora-arm64",
+    "flavour": "fedora",
+    "arch": "arm64",
+    "platform": "linux/arm64",
+    "runner": "ubuntu-24.04-arm",
+    "base": "fedora:43",
+    "cpu": "max"
+  },
+  {
+    "id": "opensuse-x86_64",
+    "flavour": "opensuse",
+    "arch": "x86_64",
+    "platform": "linux/amd64",
+    "runner": "ubuntu-24.04",
+    "base": "registry.opensuse.org/opensuse/tumbleweed:latest",
+    "cpu": "max"
+  },
+  {
+    "id": "opensuse-arm64",
+    "flavour": "opensuse",
+    "arch": "arm64",
+    "platform": "linux/arm64",
+    "runner": "ubuntu-24.04-arm",
+    "base": "registry.opensuse.org/opensuse/tumbleweed:latest",
+    "cpu": "max"
+  },
+  {
+    "id": "arch-x86_64",
+    "flavour": "arch",
+    "arch": "x86_64",
+    "platform": "linux/amd64",
+    "runner": "ubuntu-24.04",
+    "base": "archlinux:latest",
+    "cpu": "max"
+  },
+  {
+    "id": "arch-arm64",
+    "flavour": "arch",
+    "arch": "arm64",
+    "platform": "linux/arm64",
+    "runner": "ubuntu-24.04-arm",
+    "base": "dcp-arch-arm",
+    "cpu": "max"
+  },
+  {
+    "id": "alpine-x86_64",
+    "flavour": "alpine",
+    "arch": "x86_64",
+    "platform": "linux/amd64",
+    "runner": "ubuntu-24.04",
+    "base": "alpine:3.24",
+    "cpu": "max"
+  },
+  {
+    "id": "alpine-arm64",
+    "flavour": "alpine",
+    "arch": "arm64",
+    "platform": "linux/arm64",
+    "runner": "ubuntu-24.04-arm",
+    "base": "alpine:3.24",
+    "cpu": "max"
+  },
+  {
+    "id": "debian-armv6-softfloat",
+    "flavour": "debian",
+    "arch": "armv6-softfloat",
+    "platform": "linux/arm/v5",
+    "runner": "ubuntu-24.04",
+    "base": "arm32v5/debian:bookworm-slim",
+    "cpu": "arm1176"
+  },
+  {
+    "id": "debian-armv7",
+    "flavour": "debian",
+    "arch": "armv7",
+    "platform": "linux/arm/v7",
+    "runner": "ubuntu-24.04",
+    "base": "arm32v7/debian:bookworm-slim",
+    "cpu": "cortex-a7"
+  },
+  {
+    "id": "debian-x86",
+    "flavour": "debian",
+    "arch": "x86",
+    "platform": "linux/386",
+    "runner": "ubuntu-24.04",
+    "base": "i386/debian:bookworm-slim",
+    "cpu": "max"
+  },
+  {
+    "id": "raspberrypi-armv6",
+    "flavour": "raspberrypi",
+    "arch": "armv6",
+    "platform": "linux/arm/v6",
+    "runner": "ubuntu-24.04",
+    "base": "dcp-raspbian:bookworm",
+    "cpu": "arm1176"
+  },
+  {
+    "id": "alpine-armv6",
+    "flavour": "alpine",
+    "arch": "armv6",
+    "platform": "linux/arm/v6",
+    "runner": "ubuntu-24.04",
+    "base": "arm32v6/alpine:3.24",
+    "cpu": "arm1176"
+  },
+  {
+    "id": "alpine-armv7",
+    "flavour": "alpine",
+    "arch": "armv7",
+    "platform": "linux/arm/v7",
+    "runner": "ubuntu-24.04",
+    "base": "arm32v7/alpine:3.24",
+    "cpu": "cortex-a7"
+  },
+  {
+    "id": "alpine-x86",
+    "flavour": "alpine",
+    "arch": "x86",
+    "platform": "linux/386",
+    "runner": "ubuntu-24.04",
+    "base": "i386/alpine:3.24",
+    "cpu": "max"
+  }
+]

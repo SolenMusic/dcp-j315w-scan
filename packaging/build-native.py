@@ -113,7 +113,7 @@ def main():
         # use the armhf package label, which alone cannot distinguish the CPU.
         pre = Path(tmp) / 'preinstall'
         write(pre, '#!/bin/sh\nset -eu\n' + ("case $(uname -m) in armv6*) echo 'This ARMv7 package requires a Pi 2 or later CPU; use the Raspberry Pi OS ARMv6 build on Pi 1/Zero.' >&2; exit 1;; esac\n" if arch == 'armv7' else ':\n'), 0o755)
-        deps = ['bash', 'binutils', 'file'] if not scanning else ['bash']
+        deps = ['bash', 'binutils', 'file', 'gawk'] if not scanning else ['bash']
         if flavour in ('debian', 'raspberrypi'):
             kind, pkgarch, extension = 'deb', debarch, 'deb'
             deps += ['libsane1'] if scanning else ['cups', 'cups-client', 'cups-filters', 'ghostscript', 'libcups2']
@@ -145,7 +145,9 @@ def main():
         else:
             command = ['fpm', '-s', 'dir', '-t', kind, '-n', name, '-v', version, '--iteration', args.revision, '--architecture', pkgarch, '--license', 'MIT', '--url', url, '--maintainer', 'DCP-J315W driver contributors <noreply@users.noreply.github.com>', '--description', description, '--before-install', str(pre), '--before-upgrade', str(pre), '-C', str(stage), '-p', str(dest)]
             for dep in deps: command += ['-d', dep]
-            for conf in configs: command += ['--config-files', conf]
+            # Pacman backup entries must be relative; FPM 1.17's template
+            # calls gsub without retaining its result for absolute paths.
+            for conf in configs: command += ['--config-files', conf.lstrip('/') if kind == 'pacman' else conf]
             if kind == 'rpm': command += ['--rpm-auto-add-directories', '--rpm-rpmbuild-define', '_build_id_links none', '--no-rpm-autoreq', '--no-rpm-autoprov']
             if kind == 'deb': command += ['--deb-no-default-config-files']
             if kind == 'pacman': command += ['--pacman-compression', 'zstd']
