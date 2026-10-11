@@ -49,7 +49,7 @@ jobs:
           # Copy to a root-owned directory: CUPS rejects runner-owned filters.
           docker run --rm --platform '${{ matrix.platform }}' -e QEMU_CPU='${{ matrix.cpu }}' -v "$PWD:/work" dcp-native-runtime /bin/bash -c 'cp -R /work/. /source/ && cd /source && python3 packaging/test-native.py ${{ matrix.flavour }} build/native/*-1-${{ matrix.flavour }}-${{ matrix.arch }}.* build/native/*-2-${{ matrix.flavour }}-${{ matrix.arch }}.*'
       - name: Keep only the public package revision
-        run: rm build/native/*-2-${{ matrix.flavour }}-${{ matrix.arch }}.*
+        run: sudo rm build/native/*-2-${{ matrix.flavour }}-${{ matrix.arch }}.*
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: native-${{ matrix.id }}

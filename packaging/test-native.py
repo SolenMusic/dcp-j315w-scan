@@ -59,7 +59,7 @@ if scanning:
     conf = Path('/etc/sane.d/dcpj315w.conf')
     before = conf.read_bytes()
     assert 'dcpj315w:127.0.0.1' in run('scanimage', '-L').stdout
-    libraries = list(Path('/usr/lib').glob('**/sane/libsane-dcpj315w.so.1.0.0')) + list(Path('/usr/lib64').glob('sane/libsane-dcpj315w.so.1.0.0'))
+    libraries = sorted({p.resolve() for p in list(Path('/usr/lib').glob('**/sane/libsane-dcpj315w.so.1.0.0')) + list(Path('/usr/lib64').glob('sane/libsane-dcpj315w.so.1.0.0'))})
     assert len(libraries) == 1, libraries
     owned(libraries[0])
     # Through the real distro DLL loader, fragmented colour scans and failures.

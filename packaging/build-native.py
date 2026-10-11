@@ -101,6 +101,9 @@ def main():
                 copy(source / item, lib / item, 0o755 if item.endswith('.sh') else 0o644)
             copy(source / 'install.sh', lib / 'configure.sh', 0o755)
             copy(source / 'uninstall.sh', lib / 'remove-queue.sh', 0o755)
+            # Replace the old tar installer receipt's remover on migration, so
+            # it cannot silently delete files now tracked by a package manager.
+            write(lib / 'uninstall.sh', '#!/bin/sh\necho "This driver is package-managed. Use dcp-j315w-print-remove-queue, then remove dcp-j315w-cups using your package manager." >&2\nexit 1\n', 0o755)
             ppd = (source / 'DCP-J315W-CUPS.ppd.in').read_text().replace('@FILTER@', install + '/' + binary.name)
             write(lib / 'DCP-J315W-CUPS.ppd', ppd)
             write(stage / 'usr/share/cups/model/dcp-j315w-cups.ppd', ppd)
