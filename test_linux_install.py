@@ -75,4 +75,23 @@ with tempfile.TemporaryDirectory(prefix='dcp-sane-install-') as tmp:
         run(okay=False)
         assert not list(lib.glob('libsane-dcpj315w*'))
     print('PASS: incompatible C runtime and glibc version are rejected before installation')
+    shutil.copy2(binary, package/binary.name)
+    (package/'BUNDLE_LIBC').write_text('musl\n' if musl else 'glibc\n')
+    (package/'MIN_GLIBC').unlink(missing_ok=True)
+    wrong_class=bytearray((package/binary.name).read_bytes())
+    wrong_class[4]=1 if wrong_class[4]==2 else 2
+    (package/binary.name).write_bytes(wrong_class)
+    run(okay=False)
+    assert not list(lib.glob('libsane-dcpj315w*'))
+    shutil.copy2(binary, package/binary.name)
+    if current==40:
+        wrong_float=bytearray((package/binary.name).read_bytes())
+        flags=int.from_bytes(wrong_float[36:40],'little')
+        flags=(flags & ~0x600) | (0x200 if flags & 0x400 else 0x400)
+        wrong_float[36:40]=flags.to_bytes(4,'little')
+        (package/binary.name).write_bytes(wrong_float)
+        run(okay=False)
+        assert not list(lib.glob('libsane-dcpj315w*'))
+    print('PASS: incompatible ELF class and ARM float ABI are rejected before installation')
+
 print('All Linux installer checks passed.')
