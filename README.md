@@ -1,7 +1,7 @@
 # DCP-J315W Network Scanner
 
 An independent native wireless-scanning core for the **Brother DCP-J315W**, with
-native macOS Image Capture integration and a command-line test client. This project is separate from the
+native macOS Image Capture integration, a Linux SANE backend, and a command-line test client. This project is separate from the
 `dcp-j315w-cups` printing repository and has no CUPS dependency.
 
 Created with LLM-assisted coding and controlled experiments on a real printer.
@@ -30,11 +30,14 @@ built-in scanner driver. The bridge has no custom scanning GUI. Image Capture
 provides overview, region selection, colour/grayscale controls and PDF export.
 A mixed-resolution, mixed-colour two-page PDF has been physically checked.
 
-A Linux SANE backend remains the target for GNOME Document Scanner and KDE
-Skanpage. The command-line client is also available for development.
+The Linux SANE backend exposes colour, grayscale, one-bit text, 100/300 dpi,
+preview and rectangular scan areas to existing SANE applications. Fedora packages
+are available for initial hardware testing; stock libSANE and `scanimage` have
+passed simulated-scanner tests. Desktop application and physical Linux scan
+confirmation are still pending. The command-line client is also available for development.
 
 Automatic printer-address discovery, measured colour calibration, 600 dpi,
-USB support, a signed public scanner installer and Linux SANE integration remain
+USB support and a signed public scanner installer remain
 to be implemented. Native 300 dpi colour acquisition has been physically checked, and
 channel order matches the supplied digital original. The user confirmed the scan
 colours appear accurate against the printed canvas. No scanner ICC
@@ -81,6 +84,21 @@ To remove the helper and login startup entry:
 
 This preserves native applications' scanned documents and the helper's diagnostic
 log. See [macOS integration notes](macos/README.md) for lifecycle and limitations.
+
+## Linux installation and build
+
+See [the Linux guide](linux/README.md) for Fedora installation, GNOME Document
+Scanner/KDE Skanpage use, scan options and removal. Builds require a C compiler
+and SANE development headers; installing and scanning do not require Python.
+
+```sh
+./build-linux-sane.sh
+./package-linux-sane.sh
+```
+
+The generated tarball includes Bash installation and removal scripts. The backend
+uses direct Wi-Fi TCP sessions, with no background daemon, AirScan bridge or CUPS
+dependency on Linux. Address discovery is currently manual.
 
 ## Command-line build and use
 
@@ -145,6 +163,13 @@ They check exact image crops, grayscale, one-bit text, JPEG and PNG output, busy
 jobs, cancellation, disconnected requests, validation and shutdown. Both CPU
 slices pass on the development Mac.
 
+Linux checks use stock libSANE and `scanimage`, with Python's standard library
+as the loopback scanner simulator. In a disposable Linux environment containing
+the installed backend, run `python3 test_sane.py`; installer boundary checks are
+in `test_linux_install.py`. `test-linux-sane.sh` builds/packages/installs the backend
+and runs both suites, so run it only in an isolated container. The Fedora test
+image and a two-architecture GitHub Actions workflow are included.
+
 Python is only a development dependency. The local simulated scanner checks exact
 image bytes under fragmented transfers, embedded end-marker-valued pixels,
 malformed capabilities, incomplete transfer rejection, wrong row-size rejection,
@@ -168,10 +193,15 @@ Verified on this device:
 | Native Image Capture | Colour overview, 300 dpi colour export and 100 dpi grayscale export verified |
 | Native multipage PDF | Two pages, correct physical dimensions, RGB then grayscale image data |
 | AirScan bridge | Full loopback integration suite passes on ARM64 and x86_64 under Rosetta |
+| Fedora 41 SANE, x86_64 | Build, Bash installation/removal and stock libSANE/scanimage loopback suite pass in an emulated container |
+| Fedora 41 SANE, ARM64 | Same suite passes in a native ARM64 Linux VM/container |
+| Linux Wi-Fi capability query | x86_64 client receives valid 300 dpi colour capabilities from the physical scanner; no acquisition started |
 
 150 dpi grayscale is accepted by the capability query but has not had a physical
 acquisition check. Colour at 100 dpi was acquired in a protocol experiment and at
-300 dpi through the native core. A 150 dpi colour acquisition is not yet checked. No physical Intel Mac, Linux build or Linux GUI check has been performed. The full-bed height discrepancy is documented rather than
+300 dpi through the native core. A 150 dpi colour acquisition is not yet checked.
+No physical Intel Mac, physical Linux scan or Linux desktop application check has
+been performed. The full-bed height discrepancy is documented rather than
 hidden by padding; exact edge coverage still needs investigation.
 The colour test object was a 30 x 30 cm printed canvas. It exceeds the scanner
 bed, so the scan intentionally contains only the portion on the glass; it is not

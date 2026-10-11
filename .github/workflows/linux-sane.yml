@@ -1,0 +1,32 @@
+name: Linux SANE backend
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: Fedora ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build test environment
+        run: docker build --platform '${{ matrix.platform }}' -f Dockerfile.linux-sane-test -t dcp-sane-test .
+      - name: Build, install and verify with stock SANE
+        run: docker run --rm --platform '${{ matrix.platform }}' -v "$PWD:/work" dcp-sane-test ./test-linux-sane.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dcp-j315w-scan-linux-${{ matrix.arch }}
+          path: build/packages/*.tar.gz
+          if-no-files-found: error

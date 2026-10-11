@@ -1,0 +1,3 @@
+FROM fedora:41
+RUN dnf -y install gcc sane-backends sane-backends-devel sane-backends-libs python3 binutils tar gzip findutils && dnf clean all
+WORKDIR /work

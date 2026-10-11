@@ -16,4 +16,4 @@ if [ "$(uname -s)" = Darwin ]; then
 fi
 chmod 755 "$temp"
 mv -f "$temp" "$output"
-file "$output"
+if command -v file >/dev/null 2>&1; then file "$output"; fi

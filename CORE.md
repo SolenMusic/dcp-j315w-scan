@@ -1,4 +1,4 @@
-# Scanner core and macOS integration
+# Scanner core and platform integration
 
 ## Core boundary
 
@@ -82,6 +82,37 @@ The per-user Bash installer copies the universal app to Library/Application
 Support/DCPJ315WScan, writes a private LaunchAgent and starts it at login. No root
 authentication, CUPS source or printing queue changes are involved. The application
 only exposes this computer's scanner interface; it is not a LAN scan server.
+
+## Linux SANE integration
+
+`linux/sane-dcpj315w.c` implements SANE's public backend ABI. It compiles as
+`libsane-dcpj315w.so.1`, without linking the SANE implementation or a vendor driver.
+The host SANE loader loads the backend and gives existing scanner applications
+the standard options for mode, source, DPI, preview and millimetre geometry.
+
+The adapter acquires a complete image synchronously in `sane_start`, then exposes
+it through chunked `sane_read` calls. Parameters have the actual returned height
+after acquisition; earlier estimates use unknown height (-1). This preserves the
+core's policy of withholding incomplete transfers. Frontends are responsible for
+performing blocking scanner calls outside their UI thread and for output/PDF
+assembly. There is no Linux background bridge or additional scan application.
+
+Requests expand horizontal bounds to the core's 16-pixel wire alignment and crop
+back to the desired pixels in place. Text mode thresholds grayscale at 128 and
+packs black pixels as one bits, most significant bit first, as required by SANE.
+Grayscale and colour samples remain unchanged. Cancellation is only a lock-free
+atomic store, safe for frontend signal handlers; the core checks that flag during
+I/O and sends its bounded reset. Other SANE operations follow the standard's
+non-reentrant contract. One acquisition is allowed at a time within the process;
+cross-process or cross-computer arbitration has not been implemented.
+
+Numeric addresses come from `dcpj315w.conf` (with SANE_CONFIG_DIR search support)
+or an explicit `dcpj315w:IPV4` device selection. Listing configured devices does
+not probe the printer. The Bash installer adds only this backend's shared library
+and its own configuration/drop-in; it leaves existing backends and printing
+configuration intact. The Fedora x86_64 and ARM64 simulation suites use the real
+SANE loader and `scanimage`, not calls that bypass the loader. Physical Linux and
+desktop application confirmation remain pending.
 
 ## Colour conversion
 

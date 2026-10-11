@@ -1,0 +1,7 @@
+.git
+build
+captures
+research
+__pycache__
+.DS_Store
+dcp-j315w-scan
