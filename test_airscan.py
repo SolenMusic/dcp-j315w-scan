@@ -16,6 +16,16 @@ import xml.etree.ElementTree as ET
 
 root = Path(__file__).resolve().parent
 binary = Path(os.environ.get('DCP_AIRSCAN_BINARY', root / 'build/DCPJ315WAirScanBridge.app/Contents/MacOS/DCPJ315WAirScanBridge'))
+# Test only this Mac's native slice. Forcing the production app under Rosetta
+# records it in macOS's Intel-app history and can generate a misleading
+# macOS 28 compatibility notification. Intel coverage uses the Intel CI runner.
+hardware = subprocess.run(['/usr/sbin/sysctl','-n','hw.optional.arm64'], capture_output=True, text=True)
+native_arch = 'arm64' if hardware.returncode == 0 and hardware.stdout.strip() == '1' else 'x86_64'
+requested_arch = os.environ.get('DCP_AIRSCAN_ARCH', native_arch)
+if requested_arch != native_arch:
+    raise SystemExit(f'Run {requested_arch} tests on a native {requested_arch} Mac or CI runner; this Mac tests {native_arch} without Rosetta.')
+if subprocess.run(['/usr/bin/lipo', str(binary), '-verify_arch', native_arch], capture_output=True).returncode:
+    raise SystemExit(f'The test helper must include a native {native_arch} slice. Build it before testing.')
 # (Cr,Y,Cb) input and independent expected RGB output.
 vectors = [(128,0,128),(128,255,128),(255,76,85),(21,150,44),
            (107,29,255),(128,128,128),(0,0,0),(255,255,255)]
@@ -98,9 +108,7 @@ def settings(dpi=300,mode='RGB24',mime='image/png',x=7,y=3,w=72,h=6):
 
 
 scanner=Scanner()
-command_line=[binary,'--address','127.0.0.1','--no-discovery']
-if os.environ.get('DCP_AIRSCAN_ARCH'):
-    command_line=['/usr/bin/arch','-'+os.environ['DCP_AIRSCAN_ARCH']]+command_line
+command_line=['/usr/bin/arch','-'+native_arch,binary,'--address','127.0.0.1','--no-discovery']
 process=subprocess.Popen(command_line,stderr=subprocess.PIPE,stdout=subprocess.DEVNULL,text=True)
 logs=queue.Queue()
 def logging():

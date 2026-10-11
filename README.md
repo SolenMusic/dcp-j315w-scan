@@ -221,13 +221,19 @@ For the AirScan bridge integration tests (Python plus Pillow, development only):
 ```sh
 ./build-macos-airscan.sh
 python3 test_airscan.py
-DCP_AIRSCAN_ARCH=x86_64 python3 test_airscan.py # Rosetta required on Apple Silicon
 ```
 
 These tests disable discovery and contact only a simulated scanner at localhost.
 They check exact image crops, grayscale, one-bit text, JPEG and PNG output, busy
 jobs, cancellation, disconnected requests, validation and shutdown. Both CPU
-slices pass on the development Mac.
+slices have also been checked on their native GitHub macOS runners. The local
+runner now enforces the Mac's native architecture; it rejects Intel-under-Rosetta
+tests on Apple Silicon before launching a helper. Earlier forced Intel tests on
+the development Mac could record the production app in macOS's Intel-app history
+and trigger a macOS 28 Rosetta warning. The release helper is universal and the
+installed development helper was sampled running native ARM64. This removes a
+Rosetta requirement for ordinary scanning; full macOS 28 compatibility still
+requires testing on that OS. See [Apple's Rosetta guidance](https://support.apple.com/en-gb/102527).
 
 Linux checks use stock libSANE and `scanimage`, with Python's standard library
 as the loopback scanner simulator. In a disposable Linux environment containing
