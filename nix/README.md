@@ -27,9 +27,9 @@ module and configuration merger. It contains no proprietary scanner software.
 The recipe's check phase uses the same libSANE/scanimage loopback checks as Linux
 containers. CI is configured to run the pinned recipe on both CPUs.
 
-**Prepared but not yet verified locally:** no Nix build or physical NixOS scan has
-been performed. Successful Debian/Fedora/Alpine tests do not establish NixOS
-integration. The recipe will need its CI check before being advertised as tested.
+**Build and simulation verified in GitHub CI on x86_64 and ARM64.** The check phase
+passes through stock libSANE and scanimage with a loopback scanner simulator.
+No physical NixOS scan or NixOS desktop application has been checked.
 
 Primary references checked at the pinned baseline:
 [NixOS SANE module](https://github.com/NixOS/nixpkgs/blob/7c8764b7c7b09b34f632464276218ef9090eaa11/nixos/modules/services/hardware/sane.nix),
