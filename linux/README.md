@@ -16,7 +16,7 @@ SANE/scanimage on Debian 12 and Fedora 41. Separate Alpine 3.24 libraries use mu
 CPU and runtime simulation checks are recorded in the main README; only Fedora
 x86_64 has a physical Linux scan confirmation. GitHub CI also verifies the
 openSUSE runtime on both CPUs, Arch's runtime on x86_64, and the Nix source recipe
-on both CPUs. These are development packages, not a tagged scanner release yet.
+on both CPUs. The first public scanner release is v0.1.0.
 
 ## Choose a package
 

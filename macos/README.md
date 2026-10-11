@@ -28,7 +28,12 @@ has not been performed; Image Capture is the physically verified scanning app.
 
 ## Build, install, remove
 
-From the project root:
+For a release download, extract the universal macOS tarball and run
+`./install-macos-airscan.sh --address PRINTER_IPV4` in its folder, without sudo.
+No compiler is required. The release helper is Developer ID-signed, notarized and
+stapled; installation remains a per-user Bash script.
+
+To build from the project root:
 
 ```sh
 ./build-macos-airscan.sh
@@ -74,9 +79,12 @@ are not needed for normal scanning.
 - ScannerStatus currently reports bridge/job state, not a continuously probed
   printer health state. Offline acquisition fails within bounded deadlines and
   never produces a partial image.
-- This remains a development prototype with local ad hoc signing. A signed,
-  notarized public scanner installer has not yet been produced. Only one printer
-  model and one physical Mac have been tested.
+- Source builds use ad hoc signing. Set `APPLICATION_SIGN_IDENTITY` for a
+  Developer ID build, then use `./notarize-macos-scan.sh KEYCHAIN_PROFILE` and
+  `./package-macos-scan.sh` for a notarized binary tarball. Credentials stay in
+  the local keychain. A graphical combined printing/scanning installer is a
+  separate future project. Only one printer model and one physical Mac have
+  been tested.
 
 ## Protocol references
 

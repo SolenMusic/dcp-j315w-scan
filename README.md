@@ -12,10 +12,57 @@ The native Apple Silicon macOS client has acquired readable release notes over
 Wi-Fi at both 100 and 300 dpi. I hope this helps keep these scanners useful for a
 while longer.
 
+## Printing and scanning support
+
+Printing and scanning are separate projects for the same **Brother DCP-J315W**.
+Install the component you need, or both for the full Wi-Fi printing/scanning setup.
+Here, **wired** means a direct USB/cable connection to the printer.
+
+| Capability | [CUPS printing driver](https://github.com/SolenMusic/dcp-j315w-cups) | [Network scanner driver](https://github.com/SolenMusic/dcp-j315w-scan) |
+| --- | --- | --- |
+| Wi-Fi printing | Supported | Not provided; use the printing driver |
+| Wi-Fi scanning | Not provided; use the scanner driver | Supported |
+| USB / wired printing | Not implemented | Not provided |
+| USB / wired scanning | Not provided | Not implemented |
+| Monochrome and colour printing | 300/600 dpi; black-only monochrome | Not provided |
+| Colour, grayscale and text scanning | Not provided | 100/300 dpi in native apps; thresholded one-bit text |
+| Multiple pages | CUPS pages, copies and collation | Multipage PDF assembled by the scanning application |
+| macOS integration | Standard print dialogs via CUPS | Image Capture via a local AirScan helper |
+| Linux integration | CUPS | SANE; confirmed in GNOME Document Scanner |
+| Intel/x86_64 and ARM64 builds | macOS and Linux | macOS and Linux |
+| Linux distro packaging | Debian/Ubuntu, Fedora/Red Hat, Arch, openSUSE, Alpine/musl; Nix recipe | Same distro flavours; Nix recipe |
+| iOS / AirPrint | Not implemented | Not provided; macOS helper is local to that Mac |
+| Windows | Not implemented | Not implemented |
+| Other printer models | Unverified | Unverified |
+
+Physical checks cover Wi-Fi printing and scanning on one Apple Silicon Mac and
+one Fedora x86_64 laptop. Other CPU/distro combinations have automated checks;
+these do not replace physical hardware tests. USB support is future work.
+
+## Download v0.1.0
+
+The [v0.1.0 release](https://github.com/SolenMusic/dcp-j315w-scan/releases/tag/v0.1.0)
+contains a universal macOS tarball with a Developer ID-signed, notarized and
+stapled scanner helper, plus Linux tarballs with Bash installers.
+
+| System | x86_64 | ARM64 |
+| --- | --- | --- |
+| macOS | [Universal download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-macos-universal-0.1.0.tar.gz) | Same universal download |
+| Debian / Ubuntu | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-linux-debian-x86_64-0.1.0.tar.gz) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-linux-debian-arm64-0.1.0.tar.gz) |
+| Fedora / Red Hat | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-linux-fedora-x86_64-0.1.0.tar.gz) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-linux-fedora-arm64-0.1.0.tar.gz) |
+| Arch / compatible ARM derivatives | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-linux-arch-x86_64-0.1.0.tar.gz) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-linux-arch-arm64-0.1.0.tar.gz) |
+| openSUSE | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-linux-opensuse-x86_64-0.1.0.tar.gz) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-linux-opensuse-arm64-0.1.0.tar.gz) |
+| Alpine (musl) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-linux-alpine-x86_64-0.1.0.tar.gz) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.0/dcp-j315w-scan-linux-alpine-arm64-0.1.0.tar.gz) |
+
+NixOS uses the [source recipe](nix/README.md). Linux downloads are distro-specific
+tarballs, not native .deb/.rpm/.apk packages. The Arch ARM bundle is not verified
+against upstream Arch's x86_64-only container.
+
 ## Current scope
 
 - Direct IPv4 connection to the scanner service on TCP port 54921.
-- Grayscale and initial colour acquisition at 100, 150 or 300 dpi.
+- Grayscale and colour acquisition at 100/300 dpi. The core also accepts 150 dpi,
+  but physical acquisition at that resolution has not been checked.
 - Full-bed scans and selectable rectangular regions, with bounded memory use.
 - Native macOS PNG export with correct DPI metadata; portable 8-bit PGM/PPM export.
 - Strict three-plane colour framing and a standard YCbCr-to-RGB conversion.
@@ -34,15 +81,15 @@ provides overview, region selection, colour/grayscale controls and PDF export.
 A mixed-resolution, mixed-colour two-page PDF has been physically checked.
 
 The Linux SANE backend exposes colour, grayscale, one-bit text, 100/300 dpi,
-preview and rectangular scan areas to existing SANE applications. Fedora packages
-are available for initial hardware testing; stock libSANE and `scanimage` have
+preview and rectangular scan areas to existing SANE applications. Linux packages
+are available for installation; stock libSANE and `scanimage` have
 passed simulated-scanner tests. On the Fedora 41 x86_64 laptop, GNOME Document
 Scanner selected the scanner as its default device and successfully returned an
 image over Wi-Fi. The user subsequently confirmed good-looking colour at 300 dpi
 and successful multipage PDF export in Document Scanner. The command-line client is also available for development.
 
 Automatic printer-address discovery, measured colour calibration, 600 dpi,
-USB support and a signed public scanner installer remain
+USB support and a graphical combined macOS installer remain
 to be implemented. Native 300 dpi colour acquisition has been physically checked, and
 channel order matches the supplied digital original. The user confirmed the scan
 colours appear accurate against the printed canvas. No scanner ICC
@@ -51,17 +98,19 @@ output convention, not as a calibrated measurement of the scanner.
 
 ## Native macOS installation
 
-With Xcode or its command-line tools installed:
+For the release tarball, extract it, open Terminal in its folder, then run:
 
 ```sh
-./build-macos-airscan.sh
 ./install-macos-airscan.sh --address PRINTER_IPV4
 ```
 
-Run as your normal user, without sudo. This builds a universal Intel/Apple Silicon
-app, installs it under your user's Library/Application Support, and starts a
-LaunchAgent at login. Source builds use an ad hoc signature; this scanner project
-has not yet had a signed/notarized public release. The installer uses Bash and
+No compiler or Python is required for a binary download. To build from source,
+install Xcode or its command-line tools and run `./build-macos-airscan.sh` first.
+
+Run as your normal user, without sudo. The installer copies the universal
+Intel/Apple Silicon app under your user's Library/Application Support and starts
+a LaunchAgent at login. Release helpers are Developer ID-signed and notarized;
+source builds use an ad hoc signature unless a signing identity is supplied. The installer uses Bash and
 macOS system tools, not Python.
 
 Open **Image Capture**, choose **DCP-J315W Open Scanner** under Shared, and select
@@ -110,7 +159,7 @@ openSUSE using a conservative glibc build. Alpine has a separate native musl
 build. Each bundle has Bash dependency, installation and removal scripts, with
 CPU/libc compatibility checks. A [NixOS source recipe](nix/README.md) uses the
 system's declarative SANE backend integration. See [the changelog](CHANGELOG.md)
-for development package versions; no public scanner release has been tagged yet.
+for release history.
 
 ## Command-line build and use
 
@@ -141,7 +190,8 @@ A full-bed scan can end before the reported maximum height; only the rows actual
 returned with a confirmed device page-end marker are saved.
 
 `build.sh` accepts `CC`, `CFLAGS`, `LDFLAGS` and `OUTPUT`, and applies an ad hoc
-signature on macOS. This is not yet a packaged or notarized release. The networking
+signature on macOS. The CLI is a development tool; the macOS release packages
+the native scanner helper. The networking
 core uses only the system C runtime; the CLI additionally links Apple frameworks
 for PNG export on macOS. Portable PGM/PPM remains available without those frameworks.
 
@@ -218,8 +268,9 @@ Verified on this device:
 The first complete public checks ran against commit `103ccc4`:
 [Linux and Nix results](https://github.com/SolenMusic/dcp-j315w-scan/actions/runs/38138955069),
 [macOS results](https://github.com/SolenMusic/dcp-j315w-scan/actions/runs/38138955057).
-Linux package archives and checksums are available as workflow artifacts. A signed
-macOS scanner installer and a tagged release are still release-preparation work.
+Linux package archives and checksums are also available as workflow artifacts.
+The macOS scanner release uses a signed/notarized helper with a per-user Bash
+installer; a combined graphical printing/scanning installer is a separate future project.
 
 150 dpi grayscale is accepted by the capability query but has not had a physical
 acquisition check. Colour at 100 dpi was acquired in a protocol experiment and at

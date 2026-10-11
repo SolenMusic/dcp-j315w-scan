@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0 — first public release
+
+- Wi-Fi scanning for the Brother DCP-J315W through native macOS Image Capture
+  and Linux SANE applications.
+- User-confirmed 300 dpi colour and multipage PDF export on macOS and Fedora.
+- Universal Developer ID-signed/notarized macOS helper with a per-user Bash installer.
+- Linux x86_64/ARM64 downloads for Debian, Fedora, Arch, openSUSE and Alpine/musl;
+  a declarative NixOS recipe.
+- Clear printing/scanning support tables and links between the companion projects.
+- USB/direct wired connections remain unimplemented.
+
 ## 0.0.2 — development packages
 
 - Record Fedora 41 x86_64 hardware confirmation through GNOME Document Scanner:
@@ -21,6 +32,5 @@
 - Verified macOS colour/grayscale scans and multipage PDF; Linux ARM64 and x86_64
   loopback SANE tests and initial Fedora hardware acquisition.
 
-These versions are development snapshots in the public source repository. No
-tagged scanner release has been published yet. Hardware verification is limited to the DCP-J315W, one Apple
+Versions before 0.1.0 were development snapshots. Hardware verification is limited to the DCP-J315W, one Apple
 Silicon Mac and one Fedora x86_64 laptop; simulation checks are documented separately.

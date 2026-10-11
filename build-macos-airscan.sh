@@ -26,6 +26,10 @@ mv -f "$binary_temp" "$app/Contents/MacOS/DCPJ315WAirScanBridge"
 for cpu in arm64 x86_64; do
   xcrun lipo "$app/Contents/MacOS/DCPJ315WAirScanBridge" -verify_arch "$cpu"
 done
-codesign --force --sign - --identifier org.dcpj315w.scan.airscan "$app"
+if [ -n "${APPLICATION_SIGN_IDENTITY:-}" ]; then
+  codesign --force --sign "$APPLICATION_SIGN_IDENTITY" --options runtime --timestamp --identifier org.dcpj315w.scan.airscan "$app"
+else
+  codesign --force --sign - --identifier org.dcpj315w.scan.airscan "$app"
+fi
 codesign --verify --strict "$app"
 echo "$app"
