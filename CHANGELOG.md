@@ -2,6 +2,19 @@
 
 ## 0.1.1
 
+### Linux packaging revision 1 (2026-10-11)
+
+- Add genuine Debian/Raspberry Pi OS `.deb`, Fedora/openSUSE `.rpm`, Arch
+  `.pkg.tar.zst` and Alpine 3.24+ `.apk` downloads, alongside existing tarballs.
+- Let package managers track files, resolve dependencies and preserve scanner
+  configuration on upgrades. Keep printing and scanning packages separate.
+- Configure CUPS queues without copying or deleting package-owned driver files.
+- Verify actual package installation, upgrades, native integration and removal
+  inside distro containers; physical hardware coverage is unchanged.
+- Reuse the verified release binaries; the printer/scanner protocol is unchanged.
+
+### Driver release
+
 - Add separately validated 32-bit ARMv6 hard/soft-float, ARMv7 and x86 Linux targets.
 - Add Debian, Raspberry Pi OS/Raspbian and Alpine emulated build/test jobs.
 - Validate ELF class, CPU ISA and ARM float ABI before installing.

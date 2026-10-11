@@ -23,6 +23,11 @@ signature settings. No automatic update repository is configured.
 After installing the printing package, start CUPS using your distro's service
 manager, then configure a network queue:
 
+On minimal Alpine systems, the administrator may need membership in `lpadmin`
+for CUPS queue configuration. For root setup, run `addgroup root lpadmin` from a
+root shell first. This is ordinary CUPS administration setup, not a scanner
+requirement.
+
 ```sh
 sudo dcp-j315w-print-configure --address PRINTER_ADDRESS
 # Alternatively, Bonjour:

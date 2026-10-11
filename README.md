@@ -45,22 +45,24 @@ remain separate in the two component repositories.
 
 ## Download v0.1.1
 
-The [v0.1.0 release](https://github.com/SolenMusic/dcp-j315w-scan/releases/tag/v0.1.1)
+The [v0.1.1 release](https://github.com/SolenMusic/dcp-j315w-scan/releases/tag/v0.1.1)
 contains a universal macOS tarball with a Developer ID-signed, notarized and
-stapled scanner helper, plus Linux tarballs with Bash installers.
+stapled scanner helper, plus native Linux packages. Linux tarballs with Bash
+installers remain available as a manual alternative. Prefer the native packages
+below; see [package installation and removal](packaging/README.md).
 
 | System | x86_64 | ARM64 |
 | --- | --- | --- |
 | macOS | [Universal download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-macos-universal-0.1.1.tar.gz) | Same universal download |
-| Debian / Ubuntu | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-debian-x86_64-0.1.1.tar.gz) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-debian-arm64-0.1.1.tar.gz) |
-| Fedora / Red Hat | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-fedora-x86_64-0.1.1.tar.gz) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-fedora-arm64-0.1.1.tar.gz) |
-| Arch / compatible ARM derivatives | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-arch-x86_64-0.1.1.tar.gz) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-arch-arm64-0.1.1.tar.gz) |
-| openSUSE | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-opensuse-x86_64-0.1.1.tar.gz) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-opensuse-arm64-0.1.1.tar.gz) |
-| Alpine (musl) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-alpine-x86_64-0.1.1.tar.gz) | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-alpine-arm64-0.1.1.tar.gz) |
+| Debian / Ubuntu | [deb](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-debian-x86_64.deb) | [deb](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-debian-arm64.deb) |
+| Fedora / Red Hat | [rpm](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-fedora-x86_64.rpm) | [rpm](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-fedora-arm64.rpm) |
+| Arch / compatible ARM derivatives | [pkg.tar.zst](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-arch-x86_64.pkg.tar.zst) | [pkg.tar.zst](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-arch-arm64.pkg.tar.zst) |
+| openSUSE | [rpm](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-opensuse-x86_64.rpm) | [rpm](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-opensuse-arm64.rpm) |
+| Alpine 3.24+ (musl) | [apk](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-alpine-x86_64.apk) | [apk](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-alpine-arm64.apk) |
 
-NixOS uses the [source recipe](nix/README.md). Linux downloads are distro-specific
-tarballs, not native .deb/.rpm/.apk packages. The Arch ARM bundle is not verified
-against upstream Arch's x86_64-only container.
+NixOS uses the [source recipe](nix/README.md). Linux packages use Debian, RPM,
+Arch and Alpine package formats. Arch ARM packages target Arch Linux ARM, a
+separate distribution from upstream Arch. Alpine APKv3 packages require 3.24+.
 
 ## Current scope
 
@@ -145,6 +147,7 @@ log. See [macOS integration notes](macos/README.md) for lifecycle and limitation
 
 ## Linux installation and build
 
+For native packages, use [the package guide](packaging/README.md).
 See [the Linux guide](linux/README.md) for Fedora installation, GNOME Document
 Scanner/KDE Skanpage use, scan options and removal. Builds require a C compiler
 and SANE development headers; installing and scanning do not require Python.
@@ -158,7 +161,7 @@ The generated tarball includes Bash installation and removal scripts. The backen
 uses direct Wi-Fi TCP sessions, with no background daemon, AirScan bridge or CUPS
 dependency on Linux. Address discovery is currently manual.
 
-Distribution tarball flavours cover Debian/Ubuntu, Fedora/Red Hat, Arch and
+Native packages and optional tarball flavours cover Debian/Ubuntu, Fedora/Red Hat, Arch and
 openSUSE using a conservative glibc build. Alpine has a separate native musl
 build. Each bundle has Bash dependency, installation and removal scripts, with
 CPU/libc compatibility checks. A [NixOS source recipe](nix/README.md) uses the
@@ -169,13 +172,13 @@ for release history.
 
 | Distribution / CPU | Download |
 | --- | --- |
-| Raspberry Pi OS / Raspbian — ARMv6 hard-float | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-raspberrypi-armv6-0.1.1.tar.gz) |
-| Debian armel — ARMv6 soft-float | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-debian-armv6-softfloat-0.1.1.tar.gz) |
-| Debian armhf — ARMv7 | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-debian-armv7-0.1.1.tar.gz) |
-| Debian — 32-bit x86 | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-debian-x86-0.1.1.tar.gz) |
-| Alpine — ARMv6 hard-float | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-alpine-armv6-0.1.1.tar.gz) |
-| Alpine — ARMv7 | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-alpine-armv7-0.1.1.tar.gz) |
-| Alpine — 32-bit x86 | [Download](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-linux-alpine-x86-0.1.1.tar.gz) |
+| Raspberry Pi OS / Raspbian — ARMv6 hard-float | [deb](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-raspberrypi-armv6.deb) |
+| Debian armel — ARMv6 soft-float | [deb](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-debian-armv6-softfloat.deb) |
+| Debian armhf — ARMv7 | [deb](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-debian-armv7.deb) |
+| Debian — 32-bit x86 | [deb](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-debian-x86.deb) |
+| Alpine — ARMv6 hard-float | [apk](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-alpine-armv6.apk) |
+| Alpine — ARMv7 | [apk](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-alpine-armv7.apk) |
+| Alpine — 32-bit x86 | [apk](https://github.com/SolenMusic/dcp-j315w-scan/releases/download/v0.1.1/dcp-j315w-scan-0.1.1-1-alpine-x86.apk) |
 
 
 These target combinations are built separately for printing and scanning:

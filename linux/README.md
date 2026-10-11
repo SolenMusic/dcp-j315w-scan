@@ -20,8 +20,11 @@ on both CPUs. Scanner v0.1.1 adds the documented 32-bit CPU/ABI combinations.
 
 ## Choose a package
 
-Packages are tarballs with Bash installers, rather than native .deb/.rpm/.apk
-packages. Filenames contain the distribution flavour, CPU and version:
+Prefer the native `.deb`, `.rpm`, `.pkg.tar.zst` or Alpine 3.24+ `.apk`
+downloads linked in the main README. See [native package installation and
+removal](../packaging/README.md). The following instructions describe the
+**optional manual tarballs**. Their filenames contain the distribution flavour,
+CPU and version:
 
 ```text
 dcp-j315w-scan-linux-FLAVOUR-ARCH-VERSION.tar.gz
@@ -44,9 +47,9 @@ rejects mismatched CPUs, C runtimes and glibc versions older than the library's
 recorded symbol requirements. Containers establish loader/install compatibility;
 they do not establish that every desktop application or physical machine works.
 
-Arch x86_64 has a runtime check in CI. The arm64 Arch flavour is a convenience
-bundle for compatible Arch-derived systems; upstream Arch's official x86_64
-container does not verify Arch ARM. Check your system's SANE package separately.
+Arch x86_64 and Arch Linux ARM aarch64 packages have separate runtime checks
+using their own SANE loaders. Arch Linux ARM is a separate distribution from
+upstream Arch. These container checks do not constitute physical scanner tests.
 For NixOS, use [the declarative source recipe](../nix/README.md) in the source
 checkout, rather than this installer.
 
