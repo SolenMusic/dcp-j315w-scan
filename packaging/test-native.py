@@ -29,7 +29,7 @@ def install(file):
     if flavour in ('debian', 'raspberrypi'): run('apt-get', 'install', '-y', file)
     elif flavour == 'fedora': run('dnf', 'install', '-y', file)
     elif flavour == 'opensuse': run('zypper', '--non-interactive', '--no-gpg-checks', 'install', file)
-    elif flavour == 'arch': run('pacman', '-U', '--noconfirm', file)
+    elif flavour == 'arch': run('pacman', '--disable-sandbox', '-U', '--noconfirm', file)
     elif flavour == 'alpine': run('apk', 'add', '--allow-untrusted', file)
     else: raise AssertionError(flavour)
 

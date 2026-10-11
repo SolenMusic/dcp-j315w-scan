@@ -5,7 +5,9 @@ RUN if command -v apt-get >/dev/null; then apt-get update && apt-get install -y 
     elif command -v zypper >/dev/null; then \
       sed -i 's|http://download.opensuse.org|https://download.opensuse.org|g' /etc/zypp/repos.d/*.repo; \
       for attempt in 1 2 3; do zypper clean -a && zypper --non-interactive install python3 sane-backends && break; test "$attempt" != 3 || exit 1; done; \
-    elif command -v pacman >/dev/null; then pacman -Syu --noconfirm --needed python sane qpdf; \
+    elif command -v pacman >/dev/null; then \
+      # Docker's default seccomp policy cannot apply pacman's Landlock rules. \
+      pacman --disable-sandbox -Syu --noconfirm --needed python sane qpdf; \
     elif command -v apk >/dev/null; then apk add --no-cache python3 sane-utils bash; \
     else exit 1; fi
 WORKDIR /source
