@@ -1,0 +1,57 @@
+name: Native Linux packages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    name: Native ${{ matrix.id }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include: [{"id": "debian-x86_64", "flavour": "debian", "arch": "x86_64", "platform": "linux/amd64", "runner": "ubuntu-24.04", "base": "debian:bookworm-slim", "cpu": "max"}, {"id": "debian-arm64", "flavour": "debian", "arch": "arm64", "platform": "linux/arm64", "runner": "ubuntu-24.04-arm", "base": "debian:bookworm-slim", "cpu": "max"}, {"id": "fedora-x86_64", "flavour": "fedora", "arch": "x86_64", "platform": "linux/amd64", "runner": "ubuntu-24.04", "base": "fedora:43", "cpu": "max"}, {"id": "fedora-arm64", "flavour": "fedora", "arch": "arm64", "platform": "linux/arm64", "runner": "ubuntu-24.04-arm", "base": "fedora:43", "cpu": "max"}, {"id": "opensuse-x86_64", "flavour": "opensuse", "arch": "x86_64", "platform": "linux/amd64", "runner": "ubuntu-24.04", "base": "registry.opensuse.org/opensuse/tumbleweed:latest", "cpu": "max"}, {"id": "opensuse-arm64", "flavour": "opensuse", "arch": "arm64", "platform": "linux/arm64", "runner": "ubuntu-24.04-arm", "base": "registry.opensuse.org/opensuse/tumbleweed:latest", "cpu": "max"}, {"id": "arch-x86_64", "flavour": "arch", "arch": "x86_64", "platform": "linux/amd64", "runner": "ubuntu-24.04", "base": "archlinux:latest", "cpu": "max"}, {"id": "arch-arm64", "flavour": "arch", "arch": "arm64", "platform": "linux/arm64", "runner": "ubuntu-24.04-arm", "base": "dcp-arch-arm", "cpu": "max"}, {"id": "alpine-x86_64", "flavour": "alpine", "arch": "x86_64", "platform": "linux/amd64", "runner": "ubuntu-24.04", "base": "alpine:3.24", "cpu": "max"}, {"id": "alpine-arm64", "flavour": "alpine", "arch": "arm64", "platform": "linux/arm64", "runner": "ubuntu-24.04-arm", "base": "alpine:3.24", "cpu": "max"}, {"id": "debian-armv6-softfloat", "flavour": "debian", "arch": "armv6-softfloat", "platform": "linux/arm/v5", "runner": "ubuntu-24.04", "base": "arm32v5/debian:bookworm-slim", "cpu": "arm1176"}, {"id": "debian-armv7", "flavour": "debian", "arch": "armv7", "platform": "linux/arm/v7", "runner": "ubuntu-24.04", "base": "arm32v7/debian:bookworm-slim", "cpu": "cortex-a7"}, {"id": "debian-x86", "flavour": "debian", "arch": "x86", "platform": "linux/386", "runner": "ubuntu-24.04", "base": "i386/debian:bookworm-slim", "cpu": "max"}, {"id": "raspberrypi-armv6", "flavour": "raspberrypi", "arch": "armv6", "platform": "linux/arm/v6", "runner": "ubuntu-24.04", "base": "dcp-raspbian:bookworm", "cpu": "arm1176"}, {"id": "alpine-armv6", "flavour": "alpine", "arch": "armv6", "platform": "linux/arm/v6", "runner": "ubuntu-24.04", "base": "arm32v6/alpine:3.24", "cpu": "arm1176"}, {"id": "alpine-armv7", "flavour": "alpine", "arch": "armv7", "platform": "linux/arm/v7", "runner": "ubuntu-24.04", "base": "arm32v7/alpine:3.24", "cpu": "cortex-a7"}, {"id": "alpine-x86", "flavour": "alpine", "arch": "x86", "platform": "linux/386", "runner": "ubuntu-24.04", "base": "i386/alpine:3.24", "cpu": "max"}]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+        with:
+          platforms: arm,386
+      - name: Fetch the verified release binary
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./packaging/fetch-bundle.sh '${{ matrix.flavour }}' '${{ matrix.arch }}'
+      - name: Build genuine native packages, including an upgrade revision
+        run: |
+          recipe=packaging/Dockerfile
+          if [ '${{ matrix.flavour }}' = alpine ]; then recipe=packaging/Dockerfile.alpine; fi
+          docker build -f "$recipe" -t dcp-native-builder .
+          for revision in 1 2; do
+            docker run --rm -v "$PWD:/source" dcp-native-builder python3 packaging/build-native.py '${{ matrix.flavour }}' '${{ matrix.arch }}' build/native-input/bundle --revision "$revision"
+          done
+      - name: Bootstrap signed Raspbian runtime
+        if: matrix.flavour == 'raspberrypi'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debootstrap qemu-user-static gnupg curl
+          sudo ./scripts/bootstrap-raspbian.sh
+      - name: Bootstrap official Arch Linux ARM runtime
+        if: matrix.flavour == 'arch' && matrix.arch == 'arm64'
+        run: |
+          curl -fL --retry 3 https://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz -o /tmp/arch-arm.tar.gz
+          docker import --platform linux/arm64 /tmp/arch-arm.tar.gz dcp-arch-arm
+          docker run --name arch-keyring dcp-arch-arm /bin/bash -c 'pacman-key --init && pacman-key --populate archlinuxarm'
+          docker commit arch-keyring dcp-arch-arm
+          docker rm arch-keyring
+      - name: Install, upgrade, exercise native integration and remove
+        run: |
+          docker build --platform '${{ matrix.platform }}' --build-arg BASE='${{ matrix.base }}' -f packaging/Dockerfile.test -t dcp-native-runtime .
+          # Copy to a root-owned directory: CUPS rejects runner-owned filters.
+          docker run --rm --platform '${{ matrix.platform }}' -e QEMU_CPU='${{ matrix.cpu }}' -v "$PWD:/work" dcp-native-runtime /bin/bash -c 'cp -R /work/. /source/ && cd /source && python3 packaging/test-native.py ${{ matrix.flavour }} build/native/*-1-${{ matrix.flavour }}-${{ matrix.arch }}.* build/native/*-2-${{ matrix.flavour }}-${{ matrix.arch }}.*'
+      - name: Keep only the public package revision
+        run: rm build/native/*-2-${{ matrix.flavour }}-${{ matrix.arch }}.*
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-${{ matrix.id }}
+          path: build/native/*
+          if-no-files-found: error
