@@ -33,8 +33,10 @@ A mixed-resolution, mixed-colour two-page PDF has been physically checked.
 The Linux SANE backend exposes colour, grayscale, one-bit text, 100/300 dpi,
 preview and rectangular scan areas to existing SANE applications. Fedora packages
 are available for initial hardware testing; stock libSANE and `scanimage` have
-passed simulated-scanner tests. Desktop application and physical Linux scan
-confirmation are still pending. The command-line client is also available for development.
+passed simulated-scanner tests. On the Fedora 41 x86_64 laptop, GNOME Document
+Scanner selected the scanner as its default device and successfully returned an
+image over Wi-Fi. The mode, resolution, colour accuracy and PDF export from that
+Linux scan have not yet been confirmed. The command-line client is also available for development.
 
 Automatic printer-address discovery, measured colour calibration, 600 dpi,
 USB support and a signed public scanner installer remain
@@ -196,12 +198,14 @@ Verified on this device:
 | Fedora 41 SANE, x86_64 | Build, Bash installation/removal and stock libSANE/scanimage loopback suite pass in an emulated container |
 | Fedora 41 SANE, ARM64 | Same suite passes in a native ARM64 Linux VM/container |
 | Linux Wi-Fi capability query | x86_64 client receives valid 300 dpi colour capabilities from the physical scanner; no acquisition started |
+| Fedora 41, GNOME Document Scanner | User confirmed default device selection and successful physical Wi-Fi image acquisition; mode/resolution and output quality not yet confirmed |
 
 150 dpi grayscale is accepted by the capability query but has not had a physical
 acquisition check. Colour at 100 dpi was acquired in a protocol experiment and at
 300 dpi through the native core. A 150 dpi colour acquisition is not yet checked.
-No physical Intel Mac, physical Linux scan or Linux desktop application check has
-been performed. The full-bed height discrepancy is documented rather than
+No physical Intel Mac or Linux ARM64 hardware scan has been checked. The first
+Fedora x86_64 Document Scanner acquisition succeeded; Linux colour accuracy,
+resolution and PDF export still need confirmation. The full-bed height discrepancy is documented rather than
 hidden by padding; exact edge coverage still needs investigation.
 The colour test object was a 30 x 30 cm printed canvas. It exceeds the scanner
 bed, so the scan intentionally contains only the portion on the glass; it is not

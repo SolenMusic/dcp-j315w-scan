@@ -5,8 +5,10 @@ same C transport and colour conversion as the native macOS adapter. It is separa
 from the printing driver and does not change CUPS queues.
 
 This is a development preview. Fedora 41 x86_64 and ARM64 builds pass the
-installer and stock SANE/scanimage simulation suites. A physical scan from Linux
-and a Linux desktop application check are still pending.
+installer and stock SANE/scanimage simulation suites. On the Fedora 41 x86_64
+laptop, GNOME Document Scanner selected the scanner by default and returned an
+image from a physical Wi-Fi scan. Its mode/resolution, colour accuracy and PDF
+export have not yet been confirmed; Linux ARM64 has only simulation verification.
 
 ## Fedora installation
 

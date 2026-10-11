@@ -111,8 +111,11 @@ or an explicit `dcpj315w:IPV4` device selection. Listing configured devices does
 not probe the printer. The Bash installer adds only this backend's shared library
 and its own configuration/drop-in; it leaves existing backends and printing
 configuration intact. The Fedora x86_64 and ARM64 simulation suites use the real
-SANE loader and `scanimage`, not calls that bypass the loader. Physical Linux and
-desktop application confirmation remain pending.
+SANE loader and `scanimage`, not calls that bypass the loader. The user subsequently
+confirmed physical Wi-Fi acquisition through GNOME Document Scanner on Fedora 41
+x86_64, with automatic default device selection and an image returned. The scan's
+mode/resolution and output quality have not yet been confirmed; Linux ARM64
+hardware acquisition and Linux PDF export remain unverified.
 
 ## Colour conversion
 
