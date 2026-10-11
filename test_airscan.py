@@ -5,6 +5,7 @@ from io import BytesIO
 from PIL import Image
 import http.client
 import os
+import platform
 import queue
 import re
 import socket
@@ -20,7 +21,15 @@ binary = Path(os.environ.get('DCP_AIRSCAN_BINARY', root / 'build/DCPJ315WAirScan
 # records it in macOS's Intel-app history and can generate a misleading
 # macOS 28 compatibility notification. Intel coverage uses the Intel CI runner.
 hardware = subprocess.run(['/usr/sbin/sysctl','-n','hw.optional.arm64'], capture_output=True, text=True)
-native_arch = 'arm64' if hardware.returncode == 0 and hardware.stdout.strip() == '1' else 'x86_64'
+if hardware.returncode == 0 and hardware.stdout.strip() in ('0','1'):
+    native_arch = 'arm64' if hardware.stdout.strip() == '1' else 'x86_64'
+elif platform.machine() == 'arm64':
+    native_arch = 'arm64'
+elif 'unknown oid' in hardware.stderr.lower() and platform.machine() == 'x86_64':
+    # Older Intel macOS versions do not expose the Apple Silicon capability.
+    native_arch = 'x86_64'
+else:
+    raise SystemExit('Cannot verify this Mac\'s native hardware architecture; allow the sysctl query before testing.')
 requested_arch = os.environ.get('DCP_AIRSCAN_ARCH', native_arch)
 if requested_arch != native_arch:
     raise SystemExit(f'Run {requested_arch} tests on a native {requested_arch} Mac or CI runner; this Mac tests {native_arch} without Rosetta.')
