@@ -8,7 +8,8 @@ if [[ ${DCP_SANE_SKIP_BUILD:-0} != 1 ]]; then ./build-linux-sane.sh; fi
 flavour=${BUNDLE_FLAVOUR:-generic}
 ./package-linux-sane.sh "$flavour"
 python3 test_linux_install.py
-case $(uname -m) in x86_64) arch=x86_64;; aarch64|arm64) arch=arm64;; *) exit 1;; esac
+. "$root/linux/linux_arch.sh"
+arch=$(dcp_elf_arch "${OUTPUT_DIR:-$root/build/linux-sane}/libsane-dcpj315w.so.1.0.0")
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 version=$(cat VERSION)

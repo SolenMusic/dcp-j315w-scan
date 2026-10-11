@@ -12,7 +12,7 @@ with tempfile.TemporaryDirectory(prefix='dcp-sane-install-') as tmp:
     base = Path(tmp)
     package = base/'package'
     package.mkdir()
-    for script in ('install.sh', 'uninstall.sh'): shutil.copy2(root/'linux'/script, package/script)
+    for script in ('install.sh', 'uninstall.sh', 'linux_arch.sh'): shutil.copy2(root/'linux'/script, package/script)
     shutil.copy2(binary, package/binary.name)
     musl = bool(list(Path('/lib').glob('ld-musl-*.so.1')))
     (package/'BUNDLE_LIBC').write_text('musl\n' if musl else 'glibc\n')

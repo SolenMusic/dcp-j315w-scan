@@ -23,11 +23,11 @@ if [[ -z $flavour || $flavour == generic ]]; then
   esac
 fi
 case $flavour in
-  debian) manager=apt-get; packages=(libsane1 sane-utils);;
-  fedora) manager=dnf; packages=(sane-backends sane-backends-libs);;
-  arch) manager=pacman; packages=(sane);;
-  opensuse) manager=zypper; packages=(sane-backends);;
-  alpine) manager=apk; packages=(sane sane-utils bash);;
+  debian|raspberrypi) manager=apt-get; packages=(libsane1 sane-utils binutils);;
+  fedora) manager=dnf; packages=(sane-backends sane-backends-libs binutils);;
+  arch) manager=pacman; packages=(sane binutils);;
+  opensuse) manager=zypper; packages=(sane-backends binutils);;
+  alpine) manager=apk; packages=(sane sane-utils bash binutils);;
   *) echo 'Unknown bundle flavour.' >&2; exit 1;;
 esac
 command -v "$manager" >/dev/null || { echo "This bundle needs $manager; choose the bundle for your distribution." >&2; exit 1; }
@@ -35,7 +35,7 @@ printf 'SANE runtime packages: %s (%s)\n' "${packages[*]}" "$manager"
 ((dry_run)) && exit 0
 [[ $EUID == 0 ]] || { echo 'Run with sudo, or use --dry-run.' >&2; exit 1; }
 case $flavour in
-  debian) apt-get update; apt-get install -y "${packages[@]}";;
+  debian|raspberrypi) apt-get update; apt-get install -y "${packages[@]}";;
   fedora) dnf install -y "${packages[@]}";;
   arch) pacman -Syu --needed "${packages[@]}";;
   opensuse) zypper --non-interactive install "${packages[@]}";;

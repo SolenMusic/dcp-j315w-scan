@@ -1,0 +1,87 @@
+name: Legacy Linux CPU builds
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  legacy:
+    name: ${{ matrix.id }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: debian-armv6-softfloat
+            base: arm32v5/debian:bookworm-slim
+            platform: linux/arm/v5
+            arch: armv6-softfloat
+            flavour: debian
+            flags: -march=armv6 -mfloat-abi=soft
+            cpu: arm1176
+          - id: debian-armv7
+            base: arm32v7/debian:bookworm-slim
+            platform: linux/arm/v7
+            arch: armv7
+            flavour: debian
+            flags: -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=hard
+            cpu: cortex-a7
+          - id: debian-x86
+            base: i386/debian:bookworm-slim
+            platform: linux/386
+            arch: x86
+            flavour: debian
+            flags: -march=i686 -mfpmath=387
+            cpu: max
+          - id: alpine-armv6
+            base: arm32v6/alpine:3.24
+            platform: linux/arm/v6
+            arch: armv6
+            flavour: alpine
+            flags: -march=armv6 -mfpu=vfp -mfloat-abi=hard
+            cpu: arm1176
+          - id: alpine-armv7
+            base: arm32v7/alpine:3.24
+            platform: linux/arm/v7
+            arch: armv7
+            flavour: alpine
+            flags: -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=hard
+            cpu: cortex-a7
+          - id: alpine-x86
+            base: i386/alpine:3.24
+            platform: linux/386
+            arch: x86
+            flavour: alpine
+            flags: -march=i686 -mfpmath=387
+            cpu: max
+          - id: raspberrypi-armv6
+            base: dcp-raspbian:bookworm
+            platform: linux/arm/v6
+            arch: armv6
+            flavour: raspberrypi
+            flags: -march=armv6 -mfpu=vfp -mfloat-abi=hard
+            cpu: arm1176
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+        with:
+          platforms: arm,386
+      - name: Bootstrap signed Raspbian archive
+        if: matrix.flavour == 'raspberrypi'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debootstrap qemu-user-static gnupg curl
+          sudo ./scripts/bootstrap-raspbian.sh
+      - name: Build the target distribution environment
+        run: docker build --platform '${{ matrix.platform }}' --build-arg BASE_IMAGE='${{ matrix.base }}' -f Dockerfile.legacy-linux -t dcp-legacy .
+      - name: Verify stock SANE and installer under emulation
+        run: |
+          docker run --rm --platform '${{ matrix.platform }}' -v "$PWD:/work" -e CFLAGS='${{ matrix.flags }}' -e BUNDLE_FLAVOUR='${{ matrix.flavour }}' -e QEMU_CPU='${{ matrix.cpu }}' dcp-legacy bash -c './test-linux-sane.sh && cd build/packages && sha256sum *.tar.gz > SHA256SUMS'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: legacy-${{ matrix.id }}
+          path: build/packages/*
+          if-no-files-found: error

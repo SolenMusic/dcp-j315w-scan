@@ -14,7 +14,7 @@ trap 'rm -f "$tmp"' EXIT
 "${CC:-cc}" -std=c11 -O2 -Wall -Wextra -Werror -fPIC -fvisibility=hidden \
   ${CPPFLAGS:-} ${CFLAGS:-} -shared \
   "$root/linux/sane-dcpj315w.c" "$root/src/scanner.c" \
-  ${LDFLAGS:-} -Wl,-soname,libsane-dcpj315w.so.1 -o "$tmp"
+  ${LDFLAGS:-} -Wl,--no-undefined -Wl,-soname,libsane-dcpj315w.so.1 -o "$tmp"
 chmod 755 "$tmp"
 mv -f "$tmp" "$out/libsane-dcpj315w.so.1.0.0"
 ln -sfn libsane-dcpj315w.so.1.0.0 "$out/libsane-dcpj315w.so.1"

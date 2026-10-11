@@ -165,6 +165,43 @@ CPU/libc compatibility checks. A [NixOS source recipe](nix/README.md) uses the
 system's declarative SANE backend integration. See [the changelog](CHANGELOG.md)
 for release history.
 
+## Older 32-bit Linux systems
+
+These target combinations are built separately for printing and scanning:
+
+| Download label | Distribution / ABI | Intended hardware |
+| --- | --- | --- |
+| `raspberrypi-armv6` | Raspberry Pi OS/Raspbian, ARMv6 hard-float | Pi 1, Zero/Zero W; also compatible later 32-bit Pi systems |
+| `debian-armv6-softfloat` | Debian armel, ARMv6 soft-float | Pi 1 running Debian armel and similar ARMv6 systems |
+| `debian-armv7` | Debian armhf, ARMv7 hard-float | Pi 2 and similar ARMv7 boards |
+| `alpine-armv6` | Alpine armhf, ARMv6 hard-float | Pi 1 and Zero/W |
+| `alpine-armv7` | Alpine armv7, ARMv7 hard-float | Pi 2 and similar boards |
+| `debian-x86` / `alpine-x86` | 32-bit x86 | i686-class systems, subject to the distribution's CPU requirements |
+
+**ARMv6 hard-float and soft-float packages are not interchangeable.** Debian's
+standard armhf requires ARMv7; Raspberry Pi OS/Raspbian's armhf is built for
+ARMv6 with VFPv2. Alpine calls its ARMv6 hard-float port armhf and its newer port
+armv7. ELF CPU, class and float-ABI checks are performed before installation.
+The scanner plugin must also match the SANE runtime word size.
+
+The Debian baseline is Bookworm (12). Debian 13 no longer provides a normal
+32-bit x86 installer/kernel and its remaining i386 packages target 64-bit CPUs
+with SSE2. These downloads do not restore an operating system's own support.
+Fedora/Red Hat, upstream Arch and openSUSE bundles are not advertised for these
+32-bit targets; use a distribution that actually provides the required runtime.
+
+Legacy CI uses QEMU user-mode emulation with ARM1176 for ARMv6 and Cortex-A7 for
+ARMv7. Builds must pass the same protocol, application-library and installation
+checks as other Linux targets. No physical Pi 1, Pi 2 or 32-bit PC has been tested
+yet, and emulation does not measure real-board speed or memory pressure.
+Full-colour 600 dpi printing can need approximately 100 MiB for the renderer's
+RGB page alone, in addition to CUPS/PDF rendering. Older boards should start with
+300 dpi document printing and 100 dpi scan previews.
+
+Primary architecture references: [Debian ARM ports](https://www.debian.org/ports/arm/),
+[Alpine downloads and Pi architecture mapping](https://www.alpinelinux.org/downloads/),
+[Debian 13 i386 changes](https://www.debian.org/releases/trixie/release-notes/issues.en.html#reduced-support-for-i386).
+
 ## Command-line build and use
 
 From this project folder, with Xcode or its command-line tools installed:

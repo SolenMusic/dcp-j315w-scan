@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- Add separately validated 32-bit ARMv6 hard/soft-float, ARMv7 and x86 Linux targets.
+- Add Debian, Raspberry Pi OS/Raspbian and Alpine emulated build/test jobs.
+- Validate ELF class, CPU ISA and ARM float ABI before installing.
+- Preserve existing macOS and 64-bit Linux support.
+
 ## 0.1.0 — first public release
 
 - Wi-Fi scanning for the Brother DCP-J315W through native macOS Image Capture

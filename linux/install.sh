@@ -26,7 +26,7 @@ if [[ -z $libdir ]]; then
   fi
   if [[ -z $libdir ]]; then
     machine=$(uname -m)
-    case $machine in x86_64) triplet=x86_64-linux-gnu;; aarch64|arm64) triplet=aarch64-linux-gnu;; *) triplet=unknown;; esac
+    case $machine in x86_64) triplet=x86_64-linux-gnu;; aarch64|arm64) triplet=aarch64-linux-gnu;; i?86) triplet=i386-linux-gnu;; arm*) if [[ -e /lib/ld-linux-armhf.so.3 ]]; then triplet=arm-linux-gnueabihf; else triplet=arm-linux-gnueabi; fi;; *) triplet=unknown;; esac
     if [[ -d /usr/lib/$triplet/sane ]]; then libdir=/usr/lib/$triplet
     elif [[ -d /usr/lib64/sane ]]; then libdir=/usr/lib64
     elif [[ -d /usr/lib/sane ]]; then libdir=/usr/lib
@@ -52,10 +52,9 @@ if [[ -f $root/BUNDLE_LIBC ]]; then
     [[ $oldest == "$minimum" ]] || { echo "This package needs glibc $minimum or newer (found $actual)." >&2; exit 1; }
   fi
 fi
-magic=$(od -An -tx1 -N4 "$binary" | tr -d ' \n')
-elf_machine=$(od -An -tu2 -j18 -N2 "$binary" | tr -d ' \n')
-case $(uname -m) in x86_64) expected=62;; aarch64|arm64) expected=183;; *) echo 'Only x86_64 and arm64 are supported.' >&2; exit 1;; esac
-[[ $magic == 7f454c46 && $elf_machine == "$expected" ]] || { echo 'This package is for a different CPU architecture.' >&2; exit 1; }
+. "$root/linux_arch.sh"
+dcp_check_runtime "$binary" 1 || exit 1
+
 lib=$destdir$libdir/sane
 conf=$destdir/etc/sane.d
 for path in "$lib" "$conf" "$conf/dll.d" "$conf/dcpj315w.conf" "$conf/dll.d/dcpj315w" "$lib/libsane-dcpj315w.so.1.0.0"; do
