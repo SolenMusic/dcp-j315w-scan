@@ -39,6 +39,10 @@ Physical checks cover Wi-Fi printing and scanning on one Apple Silicon Mac and
 one Fedora x86_64 laptop. Other CPU/distro combinations have automated checks;
 these do not replace physical hardware tests. USB support is future work.
 
+For a choice of printing, scanning or both on macOS, use the [combined graphical macOS installer](https://github.com/SolenMusic/dcp-j315w-installer/releases/tag/v0.1.0).
+It includes the native DCP-J315W Setup configuration/removal app. Linux downloads
+remain separate in the two component repositories.
+
 ## Download v0.1.0
 
 The [v0.1.0 release](https://github.com/SolenMusic/dcp-j315w-scan/releases/tag/v0.1.0)
@@ -89,8 +93,8 @@ image over Wi-Fi. The user subsequently confirmed good-looking colour at 300 dpi
 and successful multipage PDF export in Document Scanner. The command-line client is also available for development.
 
 Automatic printer-address discovery, measured colour calibration, 600 dpi,
-USB support and a graphical combined macOS installer remain
-to be implemented. Native 300 dpi colour acquisition has been physically checked, and
+USB support remains to be implemented. A graphical combined macOS installer is
+available in the companion installer repository. Native 300 dpi colour acquisition has been physically checked, and
 channel order matches the supplied digital original. The user confirmed the scan
 colours appear accurate against the printed canvas. No scanner ICC
 profile or vendor tone table is included; PNG RGB is tagged as sRGB as a practical
@@ -270,7 +274,8 @@ The first complete public checks ran against commit `103ccc4`:
 [macOS results](https://github.com/SolenMusic/dcp-j315w-scan/actions/runs/38138955057).
 Linux package archives and checksums are also available as workflow artifacts.
 The macOS scanner release uses a signed/notarized helper with a per-user Bash
-installer; a combined graphical printing/scanning installer is a separate future project.
+installer; the companion installer repository offers the combined graphical
+printing/scanning installer and setup/removal app.
 
 150 dpi grayscale is accepted by the capability query but has not had a physical
 acquisition check. Colour at 100 dpi was acquired in a protocol experiment and at
