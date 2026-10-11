@@ -16,7 +16,7 @@ SANE/scanimage on Debian 12 and Fedora 41. Separate Alpine 3.24 libraries use mu
 CPU and runtime simulation checks are recorded in the main README; only Fedora
 x86_64 has a physical Linux scan confirmation. GitHub CI also verifies the
 openSUSE runtime on both CPUs, Arch's runtime on x86_64, and the Nix source recipe
-on both CPUs. The first public scanner release is v0.1.0.
+on both CPUs. Scanner v0.1.1 adds the documented 32-bit CPU/ABI combinations.
 
 ## Choose a package
 
@@ -36,7 +36,9 @@ dcp-j315w-scan-linux-FLAVOUR-ARCH-VERSION.tar.gz
 | alpine | musl | sane, sane-utils, bash |
 | generic | glibc; distribution detected locally | Packages for that distribution |
 
-Choose x86_64 for an Intel/AMD laptop or arm64 for AArch64. The Alpine package is
+Choose x86_64 for a 64-bit Intel/AMD laptop or arm64 for AArch64.
+32-bit x86, ARMv6 and ARMv7 downloads are listed in the main README; ARMv6
+hard-float (Raspberry Pi OS/Alpine) and soft-float (Debian armel) are distinct. The Alpine package is
 built with musl and cannot be substituted with a glibc package. The installer
 rejects mismatched CPUs, C runtimes and glibc versions older than the library's
 recorded symbol requirements. Containers establish loader/install compatibility;
