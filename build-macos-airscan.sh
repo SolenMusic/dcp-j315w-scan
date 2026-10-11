@@ -4,6 +4,9 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 app="$root/build/DCPJ315WAirScanBridge.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$root/macos/Info.plist" "$app/Contents/Info.plist"
+version=$(cat "$root/VERSION")
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$app/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $version" "$app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c 'Set :CFBundleIdentifier org.dcpj315w.scan.airscan' "$app/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c 'Set :CFBundleExecutable DCPJ315WAirScanBridge' "$app/Contents/Info.plist"
 cp "$root/macos/ScannerCapabilities.xml" "$app/Contents/Resources/"

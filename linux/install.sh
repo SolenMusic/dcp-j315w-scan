@@ -36,6 +36,22 @@ fi
 [[ $libdir == /* && $libdir != *..* && $libdir != */sane && $libdir != *$'\n'* ]] || { echo 'Use an absolute library directory (without /sane).' >&2; exit 1; }
 binary=$root/libsane-dcpj315w.so.1.0.0
 [[ -f $binary ]] || { echo 'Backend binary is missing from this package.' >&2; exit 1; }
+if [[ -f $root/BUNDLE_LIBC ]]; then
+  read -r required_libc < "$root/BUNDLE_LIBC"
+  shopt -s nullglob
+  musl_loaders=(/lib/ld-musl-*.so.1)
+  shopt -u nullglob
+  if ((${#musl_loaders[@]})); then runtime=musl; else runtime=glibc; fi
+  [[ $required_libc == "$runtime" ]] || { echo "This package requires $required_libc; this system uses $runtime." >&2; exit 1; }
+  if [[ $runtime == glibc && -f $root/MIN_GLIBC ]]; then
+    read -r minimum < "$root/MIN_GLIBC"
+    actual=$(getconf GNU_LIBC_VERSION)
+    actual=${actual#glibc }
+    [[ $minimum =~ ^[0-9]+\.[0-9]+$ && $actual =~ ^[0-9]+\.[0-9]+$ ]] || { echo 'Cannot validate glibc version.' >&2; exit 1; }
+    oldest=$(printf '%s\n%s\n' "$minimum" "$actual" | sort -V | head -1)
+    [[ $oldest == "$minimum" ]] || { echo "This package needs glibc $minimum or newer (found $actual)." >&2; exit 1; }
+  fi
+fi
 magic=$(od -An -tx1 -N4 "$binary" | tr -d ' \n')
 elf_machine=$(od -An -tu2 -j18 -N2 "$binary" | tr -d ' \n')
 case $(uname -m) in x86_64) expected=62;; aarch64|arm64) expected=183;; *) echo 'Only x86_64 and arm64 are supported.' >&2; exit 1;; esac

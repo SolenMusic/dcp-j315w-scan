@@ -1,8 +1,11 @@
 # DCP-J315W Network Scanner
 
+[![Linux SANE checks](https://github.com/SolenMusic/dcp-j315w-scan/actions/workflows/linux-sane.yml/badge.svg)](https://github.com/SolenMusic/dcp-j315w-scan/actions/workflows/linux-sane.yml)
+[![macOS scanner checks](https://github.com/SolenMusic/dcp-j315w-scan/actions/workflows/macos-airscan.yml/badge.svg)](https://github.com/SolenMusic/dcp-j315w-scan/actions/workflows/macos-airscan.yml)
+
 An independent native wireless-scanning core for the **Brother DCP-J315W**, with
 native macOS Image Capture integration, a Linux SANE backend, and a command-line test client. This project is separate from the
-`dcp-j315w-cups` printing repository and has no CUPS dependency.
+[dcp-j315w-cups](https://github.com/SolenMusic/dcp-j315w-cups) printing repository and has no CUPS dependency.
 
 Created with LLM-assisted coding and controlled experiments on a real printer.
 The native Apple Silicon macOS client has acquired readable release notes over
@@ -35,8 +38,8 @@ preview and rectangular scan areas to existing SANE applications. Fedora package
 are available for initial hardware testing; stock libSANE and `scanimage` have
 passed simulated-scanner tests. On the Fedora 41 x86_64 laptop, GNOME Document
 Scanner selected the scanner as its default device and successfully returned an
-image over Wi-Fi. The mode, resolution, colour accuracy and PDF export from that
-Linux scan have not yet been confirmed. The command-line client is also available for development.
+image over Wi-Fi. The user subsequently confirmed good-looking colour at 300 dpi
+and successful multipage PDF export in Document Scanner. The command-line client is also available for development.
 
 Automatic printer-address discovery, measured colour calibration, 600 dpi,
 USB support and a signed public scanner installer remain
@@ -95,12 +98,19 @@ and SANE development headers; installing and scanning do not require Python.
 
 ```sh
 ./build-linux-sane.sh
-./package-linux-sane.sh
+./package-linux-sane.sh generic
 ```
 
 The generated tarball includes Bash installation and removal scripts. The backend
 uses direct Wi-Fi TCP sessions, with no background daemon, AirScan bridge or CUPS
 dependency on Linux. Address discovery is currently manual.
+
+Distribution tarball flavours cover Debian/Ubuntu, Fedora/Red Hat, Arch and
+openSUSE using a conservative glibc build. Alpine has a separate native musl
+build. Each bundle has Bash dependency, installation and removal scripts, with
+CPU/libc compatibility checks. A [NixOS source recipe](nix/README.md) uses the
+system's declarative SANE backend integration. See [the changelog](CHANGELOG.md)
+for development package versions; no public scanner release has been tagged yet.
 
 ## Command-line build and use
 
@@ -169,8 +179,10 @@ Linux checks use stock libSANE and `scanimage`, with Python's standard library
 as the loopback scanner simulator. In a disposable Linux environment containing
 the installed backend, run `python3 test_sane.py`; installer boundary checks are
 in `test_linux_install.py`. `test-linux-sane.sh` builds/packages/installs the backend
-and runs both suites, so run it only in an isolated container. The Fedora test
-image and a two-architecture GitHub Actions workflow are included.
+and runs both suites, so run it only in an isolated container. Runtime tests can
+use the existing library without recompiling against the newer distribution.
+GitHub workflows cover both CPUs for glibc, musl, Nix and macOS, with separate
+Debian/Fedora/openSUSE loaders and an x86_64 Arch runtime check.
 
 Python is only a development dependency. The local simulated scanner checks exact
 image bytes under fragmented transfers, embedded end-marker-valued pixels,
@@ -198,14 +210,17 @@ Verified on this device:
 | Fedora 41 SANE, x86_64 | Build, Bash installation/removal and stock libSANE/scanimage loopback suite pass in an emulated container |
 | Fedora 41 SANE, ARM64 | Same suite passes in a native ARM64 Linux VM/container |
 | Linux Wi-Fi capability query | x86_64 client receives valid 300 dpi colour capabilities from the physical scanner; no acquisition started |
-| Fedora 41, GNOME Document Scanner | User confirmed default device selection and successful physical Wi-Fi image acquisition; mode/resolution and output quality not yet confirmed |
+| Fedora 41, GNOME Document Scanner | User confirmed default device selection, physical Wi-Fi acquisition, good-looking colour at 300 dpi and successful multipage PDF export |
+| Portable glibc library | AlmaLinux 9 builds on both CPUs; Debian 12 loader/install suites pass on both CPUs; Fedora 41 suite passes on x86_64 |
+| Alpine 3.24 musl | Independent x86_64 and ARM64 builds pass stock SANE, frontend export and installer suites in containers |
 
 150 dpi grayscale is accepted by the capability query but has not had a physical
 acquisition check. Colour at 100 dpi was acquired in a protocol experiment and at
 300 dpi through the native core. A 150 dpi colour acquisition is not yet checked.
 No physical Intel Mac or Linux ARM64 hardware scan has been checked. The first
-Fedora x86_64 Document Scanner acquisition succeeded; Linux colour accuracy,
-resolution and PDF export still need confirmation. The full-bed height discrepancy is documented rather than
+Fedora x86_64 Document Scanner acquisition, 300 dpi colour and multipage PDF
+export are user-confirmed. Colour quality is a visual assessment, not an ICC
+calibration measurement. The full-bed height discrepancy is documented rather than
 hidden by padding; exact edge coverage still needs investigation.
 The colour test object was a 30 x 30 cm printed canvas. It exceeds the scanner
 bed, so the scan intentionally contains only the portion on the glass; it is not

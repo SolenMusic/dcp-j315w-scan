@@ -1,0 +1,13 @@
+# Verify a previously built library; do not rebuild against this newer runtime.
+ARG RUNTIME_IMAGE=debian:bookworm-slim
+FROM ${RUNTIME_IMAGE}
+RUN if command -v apt-get >/dev/null; then \
+      apt-get update && apt-get install -y --no-install-recommends sane-utils libsane1 python3 binutils bash tar gzip && rm -rf /var/lib/apt/lists/*; \
+    elif command -v dnf >/dev/null; then \
+      dnf -y install sane-backends sane-backends-libs python3 binutils bash tar gzip && dnf clean all; \
+    elif command -v zypper >/dev/null; then \
+      zypper --non-interactive install sane-backends python3 binutils bash tar gzip && zypper clean --all; \
+    elif command -v pacman >/dev/null; then \
+      pacman -Syu --noconfirm --needed sane python binutils bash tar gzip && pacman -Scc --noconfirm; \
+    else exit 1; fi
+WORKDIR /work

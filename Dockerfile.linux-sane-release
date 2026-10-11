@@ -1,0 +1,4 @@
+# Conservative glibc baseline shared by the distribution bundles.
+FROM almalinux:9
+RUN dnf -y install gcc sane-backends-devel sane-backends sane-backends-libs python3 binutils bash tar gzip && dnf clean all
+WORKDIR /work

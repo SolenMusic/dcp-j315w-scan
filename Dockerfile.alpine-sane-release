@@ -1,0 +1,3 @@
+FROM alpine:3.24
+RUN apk add --no-cache build-base sane-dev sane-utils python3 binutils bash tar gzip
+WORKDIR /work

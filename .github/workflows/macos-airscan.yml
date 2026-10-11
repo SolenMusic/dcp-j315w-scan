@@ -1,0 +1,32 @@
+name: macOS wireless scanner
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test CLI, universal core and native bridge on loopback
+        env:
+          CFLAGS: -arch ${{ matrix.arch }} -mmacosx-version-min=11.0
+        run: |
+          python3 -m venv /tmp/dcp-scanner-tests
+          /tmp/dcp-scanner-tests/bin/pip install Pillow
+          ./build.sh
+          /tmp/dcp-scanner-tests/bin/python test_transport.py
+          ./build-macos-core.sh
+          ./build-macos-airscan.sh
+          /tmp/dcp-scanner-tests/bin/python test_airscan.py

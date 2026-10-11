@@ -14,6 +14,9 @@ with tempfile.TemporaryDirectory(prefix='dcp-sane-install-') as tmp:
     package.mkdir()
     for script in ('install.sh', 'uninstall.sh'): shutil.copy2(root/'linux'/script, package/script)
     shutil.copy2(binary, package/binary.name)
+    musl = bool(list(Path('/lib').glob('ld-musl-*.so.1')))
+    (package/'BUNDLE_LIBC').write_text('musl\n' if musl else 'glibc\n')
+    if not musl: (package/'MIN_GLIBC').write_text('2.17\n')
     stage = base/'system'
     conf = stage/'etc/sane.d'
     lib = stage/'usr/lib64/sane'
@@ -62,4 +65,14 @@ with tempfile.TemporaryDirectory(prefix='dcp-sane-install-') as tmp:
     run(okay=False)
     assert not list(lib.glob('libsane-dcpj315w*'))
     print('PASS: removal preserves documents/configuration/other drivers; wrong CPU rejected before installation')
+    shutil.copy2(binary, package/binary.name)
+    (package/'BUNDLE_LIBC').write_text('glibc\n' if musl else 'musl\n')
+    run(okay=False)
+    assert not list(lib.glob('libsane-dcpj315w*'))
+    if not musl:
+        (package/'BUNDLE_LIBC').write_text('glibc\n')
+        (package/'MIN_GLIBC').write_text('999.0\n')
+        run(okay=False)
+        assert not list(lib.glob('libsane-dcpj315w*'))
+    print('PASS: incompatible C runtime and glibc version are rejected before installation')
 print('All Linux installer checks passed.')

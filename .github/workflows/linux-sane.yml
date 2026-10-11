@@ -6,27 +6,86 @@ on:
 permissions:
   contents: read
 jobs:
-  verify:
-    name: Fedora ${{ matrix.arch }}
+  glibc:
+    name: Linux glibc ${{ matrix.arch }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: x86_64
             runner: ubuntu-24.04
-            platform: linux/amd64
           - arch: arm64
             runner: ubuntu-24.04-arm
-            platform: linux/arm64
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
-      - name: Build test environment
-        run: docker build --platform '${{ matrix.platform }}' -f Dockerfile.linux-sane-test -t dcp-sane-test .
-      - name: Build, install and verify with stock SANE
-        run: docker run --rm --platform '${{ matrix.platform }}' -v "$PWD:/work" dcp-sane-test ./test-linux-sane.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build conservative glibc library and test baseline
+        run: |
+          docker build -f Dockerfile.linux-sane-release -t dcp-sane-release .
+          docker run --rm -v "$PWD:/work" -e BUNDLE_FLAVOUR=fedora dcp-sane-release ./test-linux-sane.sh
+      - name: Verify portable library with distro SANE loaders
+        run: |
+          for entry in 'debian:bookworm-slim,debian' 'fedora:41,fedora' 'registry.opensuse.org/opensuse/tumbleweed:latest,opensuse'; do
+            image=${entry%,*}
+            flavour=${entry##*,}
+            docker build --build-arg "RUNTIME_IMAGE=$image" -f Dockerfile.linux-sane-runtime -t "dcp-sane-$flavour" .
+            docker run --rm -v "$PWD:/work" -e DCP_SANE_SKIP_BUILD=1 -e "BUNDLE_FLAVOUR=$flavour" "dcp-sane-$flavour" ./test-linux-sane.sh
+          done
+      - name: Arch loader and installation
+        if: matrix.arch == 'x86_64'
+        run: |
+          docker build --build-arg RUNTIME_IMAGE=archlinux:latest -f Dockerfile.linux-sane-runtime -t dcp-sane-arch .
+          docker run --rm -v "$PWD:/work" -e DCP_SANE_SKIP_BUILD=1 -e BUNDLE_FLAVOUR=arch dcp-sane-arch ./test-linux-sane.sh
+      - name: Package remaining flavours and checksums
+        run: |
+          docker run --rm -v "$PWD:/work" dcp-sane-release bash -c './package-linux-sane.sh generic && ./package-linux-sane.sh arch'
+          cd build/packages
+          sha256sum *.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: dcp-j315w-scan-linux-${{ matrix.arch }}
-          path: build/packages/*.tar.gz
+          name: linux-glibc-${{ matrix.arch }}
+          path: build/packages/*
           if-no-files-found: error
+  alpine:
+    name: Alpine musl ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build and verify musl library with stock SANE
+        run: |
+          docker build -f Dockerfile.alpine-sane-release -t dcp-sane-alpine .
+          docker run --rm -v "$PWD:/work" -e BUNDLE_FLAVOUR=alpine dcp-sane-alpine ./test-linux-sane.sh
+          cd build/packages
+          sha256sum *.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: linux-alpine-${{ matrix.arch }}
+          path: build/packages/*
+          if-no-files-found: error
+  nix:
+    name: Nix source recipe ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: nixbuild/nix-quick-install-action@9f63be77f412a248c9d9a65a4c82cf066cdf8f0c # v35
+      - name: Build and verify with stock libSANE
+        run: nix-build nix/ci.nix --no-out-link
