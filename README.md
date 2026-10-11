@@ -213,6 +213,13 @@ Verified on this device:
 | Fedora 41, GNOME Document Scanner | User confirmed default device selection, physical Wi-Fi acquisition, good-looking colour at 300 dpi and successful multipage PDF export |
 | Portable glibc library | AlmaLinux 9 builds on both CPUs; Debian 12 loader/install suites pass on both CPUs; Fedora 41 suite passes on x86_64 |
 | Alpine 3.24 musl | Independent x86_64 and ARM64 builds pass stock SANE, frontend export and installer suites in containers |
+| Public GitHub build checks | All eight jobs pass: macOS, glibc, Alpine/musl and Nix on both CPUs; glibc jobs also check Debian/Fedora/openSUSE runtimes, plus Arch on x86_64 |
+
+The first complete public checks ran against commit `103ccc4`:
+[Linux and Nix results](https://github.com/SolenMusic/dcp-j315w-scan/actions/runs/38138955069),
+[macOS results](https://github.com/SolenMusic/dcp-j315w-scan/actions/runs/38138955057).
+Linux package archives and checksums are available as workflow artifacts. A signed
+macOS scanner installer and a tagged release are still release-preparation work.
 
 150 dpi grayscale is accepted by the capability query but has not had a physical
 acquisition check. Colour at 100 dpi was acquired in a protocol experiment and at

@@ -14,9 +14,9 @@ not a measured ICC calibration.
 The portable glibc library is built on AlmaLinux 9 and checked through stock
 SANE/scanimage on Debian 12 and Fedora 41. Separate Alpine 3.24 libraries use musl.
 CPU and runtime simulation checks are recorded in the main README; only Fedora
-x86_64 has a physical Linux scan confirmation. Arch, openSUSE and NixOS recipes
-have CI checks prepared; their results must be confirmed before claiming tested
-integration. These are development packages, not a public scanner release yet.
+x86_64 has a physical Linux scan confirmation. GitHub CI also verifies the
+openSUSE runtime on both CPUs, Arch's runtime on x86_64, and the Nix source recipe
+on both CPUs. These are development packages, not a tagged scanner release yet.
 
 ## Choose a package
 
